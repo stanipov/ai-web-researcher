@@ -2,8 +2,6 @@ import sys
 sys.path.append("./src")
 
 from src.engines.ddg import DDG
-import asyncio
-from langchain_community.llms.fake import FakeListLLM
 from utils.utils import set_logger
 
 

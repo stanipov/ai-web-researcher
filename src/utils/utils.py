@@ -19,3 +19,13 @@ def set_logger():
     root.addHandler(ch)
     logger = logging.getLogger(__name__)
     return logger
+
+
+def config_reader(cfg_file):
+    """
+    Parses the config file for the whole app
+
+    :param cfg_file:
+    :return:
+    """
+    return
