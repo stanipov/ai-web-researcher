@@ -13,7 +13,7 @@ class DDG(BaseEngine):
     def __init__(self, agent: Optional=None,
                  max_results: Optional[int]=20,):
 
-        self.logger = logging.getLogger('SimpleSummarizer')
+        self.logger = logging.getLogger('DDG-Engine')
         self.agent = agent
         self.engine = DuckDuckGoSearchResults(num_results=max_results)
         self.__matcher = re.compile(r'\[([^\]]+)\]')
