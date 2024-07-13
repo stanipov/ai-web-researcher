@@ -1,7 +1,7 @@
 import sys
 sys.path.append("./src")
 
-from src.engines.ddg import DDG
+from engines.ddg import DDG
 from utils.utils import set_logger
 
 
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     save_fld = os.path.join(os.getcwd(), *("data",str(uuid4())))
     os.makedirs(save_fld, exist_ok=True)
 
-    # runnig the actual query
+    # running the actual query
     ddg = DDG(agent=agent, max_results=max_results)
     ans = ddg.invoke(query2)
 
