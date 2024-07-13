@@ -9,13 +9,11 @@ from langchain_community.document_transformers import Html2TextTransformer
 from langchain_community.document_loaders import AsyncChromiumLoader
 
 
-from utils.utils import set_logger
-
 class DDG(BaseEngine):
     def __init__(self, agent: Optional=None,
                  max_results: Optional[int]=20,):
 
-        self.logger = set_logger()
+        self.logger = logging.getLogger('SimpleSummarizer')
         self.agent = agent
         self.engine = DuckDuckGoSearchResults(num_results=max_results)
         self.__matcher = re.compile(r'\[([^\]]+)\]')
