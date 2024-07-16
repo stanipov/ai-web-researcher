@@ -10,11 +10,10 @@ from langchain_community.document_loaders import AsyncChromiumLoader
 
 
 class DDG(BaseEngine):
-    def __init__(self, agent: Optional=None,
-                 max_results: Optional[int]=20,):
+    def __init__(self,
+                 max_results: Optional[int] = 20):
 
         self.logger = logging.getLogger('DDG-Engine')
-        self.agent = agent
         self.engine = DuckDuckGoSearchResults(num_results=max_results)
         self.__matcher = re.compile(r'\[([^\]]+)\]')
         self.html2text = Html2TextTransformer()
@@ -47,7 +46,7 @@ class DDG(BaseEngine):
                 title = self.title_m.findall(item)[0]
                 url = self.url_m.findall(item)[0]
                 ans[url] = {
-                    "short_sumamry": short_sum,
+                    "short_summary": short_sum,
                     "title": title
                 }
             except Exception as e:
@@ -74,12 +73,7 @@ class DDG(BaseEngine):
         scraped_urls = self.__load_urls(urls)
 
         # add the scraped texts:
-        for i,url in enumerate(urls):
+        for i, url in enumerate(urls):
             response[url]['text'] = scraped_urls[i].page_content
 
         return response
-
-
-
-
-
