@@ -93,5 +93,6 @@ if __name__ == "__main__":
         }
         print(f"***********\nSummarizing: {topic}\nQuery: {query}")
         ans = agent.invoke(test_query)
+        print(ans.keys())
         print(f"Summary:\n{ans['summary']}")
 

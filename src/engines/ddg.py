@@ -66,9 +66,26 @@ class DDG(BaseEngine):
         pass
 
     def invoke(self, query):
+        """
+        :param query: str query to run the search engine
+        :return: Dict[url] -> Dict{"short_summary", "title", "text"}
+        """
         # get the search engine response
         raw_response_str = asyncio.run(engine_ainvoke(self.engine, query))
         response = self.__parse_response(raw_response_str)
+        urls = list(response.keys())
+        scraped_urls = self.__load_urls(urls)
+
+        # add the scraped texts:
+        for i, url in enumerate(urls):
+            response[url]['text'] = scraped_urls[i].page_content
+
+        return response
+
+    async def ainvoke(self, query):
+        raw_response_str = await engine_ainvoke(self.engine, query)
+        response = self.__parse_response(raw_response_str)
+
         urls = list(response.keys())
         scraped_urls = self.__load_urls(urls)
 

@@ -5,7 +5,6 @@ from functools import partial
 from agents.agent_states import SimpleSummarizerState
 from agents.nodes import BasicJSONNode, BasicStrNode
 
-#from utils.utils import set_logger
 import logging
 
 def is_relevant_router(state: SimpleSummarizerState) -> Literal["proceed","__end__"]:
