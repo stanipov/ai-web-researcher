@@ -24,5 +24,6 @@ class WebAgentSearch:
             sum_url = self.summarize(agent_query)
             search_results[url]['relevant'] = sum_url['relevant']
             search_results[url]['summary'] = sum_url['summary']
+            search_results[url]['query'] = query
 
         return search_results

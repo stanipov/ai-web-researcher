@@ -55,7 +55,8 @@ class DDG(BaseEngine):
         return ans
 
     def __load_urls(self, urls):
-        loader = AsyncChromiumLoader(urls)
+        # https://www.reddit.com/r/Piracy/comments/180u498/how_to_bypass_any_paywall/
+        loader = AsyncChromiumLoader(urls, user_agent = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)')
         html_chr_a = asyncio.run(loader.aload())
         self.logger.info("Converting HTML to text using html2text")
         ans = self.html2text.transform_documents(html_chr_a)
