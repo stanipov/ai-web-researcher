@@ -48,7 +48,7 @@ class BasicStrNode:
 
         self.chain = self.chat_prompt | llm | StrOutputParser()
 
-    def __call__(self, inputs: Dict[str, str]) -> Union[str, Dict[str, str]]:
+    def __call__(self, inputs: Dict[str, Union[str, int, float]]) -> Union[str, Dict[str, str]]:
         return {
             self.key: self.chain.invoke(inputs)
         }
@@ -89,5 +89,5 @@ class BasicJSONNode:
 
         self.chain = self.chat_prompt | llm | JsonOutputParser()
 
-    def __call__(self, inputs: Dict[str, str]) -> Union[str, Dict[str, str]]:
+    def __call__(self, inputs: Dict[str, Union[str, int, float]]) -> Union[str, Dict[str, str]]:
         return self.chain.invoke(inputs)

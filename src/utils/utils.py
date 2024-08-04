@@ -29,3 +29,8 @@ def config_reader(cfg_file):
     :return:
     """
     return
+
+def count_words(s, punkt = set(['*', ';'])):
+    """A naive word counter"""
+    words = [x for x in s.replace('\n', '').split(' ') if x != '' and x not in punkt]
+    return len(words)

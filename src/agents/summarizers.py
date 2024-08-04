@@ -1,4 +1,4 @@
-from typing import Literal, Dict
+from typing import Literal, Dict, Union
 from langgraph.graph import StateGraph, START, END
 from functools import partial
 
@@ -26,10 +26,11 @@ def func_validator(state: SimpleSummarizerState, val_node: BasicJSONNode):
     return val_node(message)
 
 
-def func_summarizeer(state: SimpleSummarizerState, sum_node: BasicStrNode):
+def func_summarizer(state: SimpleSummarizerState, sum_node: BasicStrNode):
     message = {
         'text': state['text'],
-        'query': state['query']
+        'query': state['query'],
+        'num_words': state['num_words']
     }
     return sum_node(message)
 
@@ -47,7 +48,7 @@ class SimpleSummarizer:
         NodeSummarizer = BasicStrNode(sum_msgs, llm, 'summary')
 
         validator = partial(func_validator, val_node=NodeValidator)
-        summarizer = partial(func_summarizeer, sum_node=NodeSummarizer)
+        summarizer = partial(func_summarizer, sum_node=NodeSummarizer)
 
         self.logger.info("Setting the graph")
         graph = StateGraph(SimpleSummarizerState)
@@ -71,5 +72,5 @@ class SimpleSummarizer:
 
         self.graph = graph.compile()
 
-    def invoke(self, query: Dict[str, str]) -> Dict[str, str]:
+    def invoke(self, query: Dict[str, Union[str, int, float]]) -> Dict[str, str]:
         return self.graph.invoke(query)
