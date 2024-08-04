@@ -9,13 +9,14 @@ class WebAgentSearch:
     def __init__(self,
                  agent: SimpleSummarizer,
                  web_engine,
-                 summ_length: float=0.3) -> None:
+                 summ_length: float=0.3,
+                 summ_abs_len: int=900) -> None:
         self.logger = logging.getLogger('WebAgentSearch')
         self.agent = agent
         self.engine = web_engine
         self.punkt = set(punctuation)
-        self.summ_len = summ_length
-        self.summ_abs_max = 900
+        self.summ_len = summ_length # relative length
+        self.summ_abs_max = summ_abs_len # absolute maximal length of the summary
 
     def summarize(self, query: Dict[str, Union[str, int, float]]) -> Dict[str, str]:
         return self.agent.invoke(query)
