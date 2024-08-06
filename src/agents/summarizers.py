@@ -56,7 +56,7 @@ class SimpleSummarizer:
     """
     A simple summarizer graph.
     The summarizer will provide summary no longer than a predefined number of words
-    (can be any interger or "any" for unrestricted lenght)
+    (can be any integer or "any" for unrestricted length)
     """
     def __init__(self,
                  val_msgs: Dict[str, str],
@@ -67,7 +67,7 @@ class SimpleSummarizer:
 
         self.logger.info("Setting the nodes")
         NodeValidator = BasicJSONNode(val_msgs, llm)
-        NodeSummarizer = BasicJSONNode(sum_msgs, llm)
+        NodeSummarizer = BasicStrNode(sum_msgs, llm, 'summary')
 
         validator = partial(func_validator, val_node=NodeValidator)
         summarizer = partial(func_summarizer, sum_node=NodeSummarizer)
@@ -94,8 +94,28 @@ class SimpleSummarizer:
 
         self.graph = graph.compile()
 
+    def rollback_result(self, query):
+        """
+        Rollback values when the summarization graph fails. This often happens because
+        a model believes it has been asked something it was censored for
+        :param query: user query
+        :return: SimpleSummarizerState()
+        """
+        state = SimpleSummarizerState()
+        state['text'] = query['text']
+        state['query'] = query['query']
+        state['num_words'] = query['num_words']
+        state['summary'] = 'fail'
+        state['relevant'] = True
+        return state
+
     def invoke(self, query: Dict[str, Union[str, int, float]]) -> Dict[str, str]:
-        return self.graph.invoke(query)
+        try:
+            return self.graph.invoke(query)
+        except Exception as e:
+            self.logger.warning(f"Graph invocation failed with '{e}")
+            self.logger.warning(f"Returning rollback values")
+            return self.rollback_result(query)
 
 
 
@@ -115,7 +135,7 @@ class AdvancedSummarizer:
 
         self.logger.info("Setting the nodes")
         NodeValidator = BasicJSONNode(val_msgs, llm)
-        NodeSummarizer = BasicJSONNode(sum_msgs, llm)
+        NodeSummarizer = BasicStrNode(sum_msgs, llm, 'summary')
         NodeRewriter = BasicJSONNode(rewrt_msgs, llm)
 
         validator = partial(func_validator, val_node=NodeValidator)
@@ -145,5 +165,26 @@ class AdvancedSummarizer:
 
         self.graph = graph.compile()
 
+    def rollback_result(self, query):
+        """
+        Rollback values when the summarization graph fails. This often happens because
+        a model believes it has been asked something it was censored for
+        :param query: user query
+        :return: AdvancedSummarizerState()
+        """
+        state = AdvancedSummarizerState()
+        state['text'] = query['text']
+        state['query'] = query['query']
+        state['num_words'] = query['num_words']
+        state['summary'] = 'fail'
+        state['relevant'] = True
+        state['new_prompt'] = ''
+        return state
+
     def invoke(self, query: Dict[str, Union[str, int, float]]) -> Dict[str, str]:
-        return self.graph.invoke(query)
+        try:
+            return self.graph.invoke(query)
+        except Exception as e:
+            self.logger.warning(f"Graph invocation failed with '{e}")
+            self.logger.warning(f"Returning rollback values")
+            return self.rollback_result(query)

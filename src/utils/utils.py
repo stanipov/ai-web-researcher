@@ -30,7 +30,9 @@ def config_reader(cfg_file):
     """
     return
 
-def count_words(s, punkt = set(['*', ';'])):
+def count_words(s: str, punkt = set(['*', ';'])):
     """A naive word counter"""
+    if type(s) != str:
+        s = str(s)
     words = [x for x in s.replace('\n', '').split(' ') if x != '' and x not in punkt]
     return len(words)
