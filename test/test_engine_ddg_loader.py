@@ -1,8 +1,10 @@
 import sys
 sys.path.append("./src")
 
-from engines.ddg import DDG
+from engines.ddg import DDG_Scraper
+from engines.loaders import ExtChromiumLoader
 from utils.utils import set_logger
+import asyncio
 
 
 if __name__ == "__main__":
@@ -13,27 +15,23 @@ if __name__ == "__main__":
     from hashlib import md5
 
     logger = set_logger()
-    fake_responses = ['true']
+
+    path_to_extension = "/ext4/software/browser/bpwc"
+
     query1 = "What is a metric tensor?"
     query2 = "Trump Biden debates June 2024 in news"
     query2 = "Trump assassination in Pennsylvania"
-    max_results = 4
+    max_results = 10
 
-    # saving the query results
-    # each result into a single text file
-    save_fld = os.path.join(os.getcwd(), *("data", str(uuid4())))
-    os.makedirs(save_fld, exist_ok=True)
+    loader = ExtChromiumLoader(ext_path=path_to_extension, headless=True)
 
     # running the actual query
-    ddg = DDG(max_results=max_results)
-    ans = ddg.invoke(query2)
+    ddg = DDG_Scraper(loader, max_results=max_results)
+    ans = asyncio.run(ddg.ainvoke(query2))
 
     print(ans.keys())
 
-
-    for res in ans:
-        fname = md5(ans[res]['text'].encode('utf-8')).hexdigest() + ".txt"
-        fname = os.path.join(save_fld, fname)
-        msg = f"URL: {res}\n============\nResults:\n{ans[res]['text']}"
-        with open(fname, 'w') as f:
-            f.write(msg)
+    print('\n***********************************************************************\n')
+    for i,url in enumerate(ans):
+        print(f"{i} -- URL: {url}")
+        print(f"Sample: {ans[url]['text'][0:100]}\n{'*'*80}\n")

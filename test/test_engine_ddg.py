@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
     # running the actual query
     ddg = DDG(max_results=max_results)
-    ans = ddg.invoke(query2)
+    ans = ddg.invoke(query1)
 
     print(ans.keys())
 
