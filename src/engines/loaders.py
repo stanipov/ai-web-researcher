@@ -1,9 +1,8 @@
-from typing import List, Union
+from typing import List, Union, Dict
 from playwright.async_api import async_playwright, Playwright
 import html2text
 import logging
 import os
-
 
 logger = logging.getLogger(__name__)
 
@@ -11,11 +10,13 @@ class ExtChromiumLoader:
     def __init__(self,
                  ext_path:Union[str, None] = None,
                  user_agent:Union[str, None] = None,
-                 headless:bool = True):
+                 headless:bool = True,
+                 proxy: Dict[str, str] = None):
         self.__ext_path = ext_path
         self.__user_agent = user_agent
         self.__headless = headless
         self.__usr_data_path = os.path.join(os.getcwd(), '.tmp')
+        self.__proxy = proxy
 
         self.__args = []
         if ext_path:
@@ -25,7 +26,7 @@ class ExtChromiumLoader:
             ]
 
         # "--headless=new" is experimental for PlayWright
-        # at the moment of writing this wrapper code
+        # at the moment of writing this wrapper code.
         # If we want headless Chromium wth extensions
         # we add "--headless=new" in args and
         # set headless in the context as False.
@@ -52,7 +53,8 @@ class ExtChromiumLoader:
             user_data_dir= self.__usr_data_path,
             user_agent=self.__user_agent,
             headless=self.__headless,
-            args=self.__args
+            args=self.__args,
+            proxy=self.__proxy
         )
 
         contents = {}
@@ -64,6 +66,7 @@ class ExtChromiumLoader:
                 await page.goto(url, wait_until='domcontentloaded')
             except Exception as e:
                 logger.warning(f"Could not load \"{url}\" with \"{e}\"!")
+                continue
 
             # Accept cookies
             for btn in self.cookie_btns_text:
@@ -80,6 +83,7 @@ class ExtChromiumLoader:
                 contents[url] = content
             except Exception as e:
                 logger.warning(f"Could not convert to HTML page \"{url}\"")
+
             await page.context.pages[-1].close()
         await context.close()
 
