@@ -3,6 +3,7 @@ from playwright.async_api import async_playwright, Playwright
 import html2text
 import logging
 import os
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ class ExtChromiumLoader:
         self.html2text.ignore_images = True
         self.html2text.ignore_mailto_links = True
 
-        self.cookie_btns_text = ['Accept']
+        self.cookie_btns_text = ['Accept', 'Allow', 'Consent', 'OK', 'Continue']
 
 
     async def __aload_urls(self, playwright: Playwright, urls: List[str]):
@@ -58,8 +59,8 @@ class ExtChromiumLoader:
         )
 
         contents = {}
-        for url in urls:
-            logger.info(f"Loading {url}")
+        for idx, url in enumerate(urls):
+            logger.info(f"{idx+1}/{len(urls)+1}: Loading {url}")
             page = await context.new_page()
 
             try:
@@ -69,20 +70,24 @@ class ExtChromiumLoader:
                 continue
 
             # Accept cookies
+            logger.info(f"Accepting cookies if any")
             for btn in self.cookie_btns_text:
-                logger.info(f"Accepting cookies if any; looking for \"{btn}\" button.")
+                #logger.info(f"Accepting cookies if any; looking for \"{btn}\" button.")
                 try:
-                    await page.locator(f'button:has-text("{btn}")').click(timeout=1000)
+                    await page.locator(f'button:has-text("{btn}")').click(timeout=1500)
+                    break
+                    #await page.get_by_role('button', name=re.compile(f'{btn}', re.IGNORECASE)).click(timeout=1500)
                 except Exception as e:
-                    logger.info(f'While trying to accept cookies, got "{e}"')
+                    #logger.info(f'While trying to accept cookies, got "{e}"')
+                    pass
 
             try:
-                logger.info(f'Converting "{url}" to HTML')
+                logger.info(f'Converting to HTML')
                 html_content = await page.content()
                 content = self.html2text.handle(html_content)
                 contents[url] = content
             except Exception as e:
-                logger.warning(f"Could not convert to HTML page \"{url}\"")
+                logger.warning(f"Could not convert to HTML")
 
             await page.context.pages[-1].close()
         await context.close()

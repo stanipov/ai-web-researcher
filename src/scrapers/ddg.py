@@ -1,6 +1,5 @@
-from base_engine import BaseEngine
 from langchain_community.tools import DuckDuckGoSearchResults
-from base_engine import BaseEngine, engine_ainvoke
+from src.scrapers.base_engine import BaseEngine, engine_ainvoke
 import asyncio
 import re
 import logging
@@ -8,13 +7,14 @@ from typing import List, Dict, Required, Optional
 from langchain_community.document_transformers import Html2TextTransformer
 from langchain_community.document_loaders import AsyncChromiumLoader
 
+logger = logging.getLogger(__name__)
 
 class DDG_Scraper(BaseEngine):
     def __init__(self,
                 loader,
                 max_results: Optional[int] = 20):
 
-        self.logger = logging.getLogger('DDG-Engine')
+        #self.logger = logging.getLogger('DDG-Engine')
         self.engine = DuckDuckGoSearchResults(num_results=max_results)
         self.loader = loader
         self.__matcher = re.compile(r'\[([^\]]+)\]')
@@ -42,14 +42,16 @@ class DDG_Scraper(BaseEngine):
         :param res:
         :return:
         """
-        response = self.__matcher.findall(res)
+        # this is an old part when search results were included into []
+        #response = self.__matcher.findall(res)
         # this is a hot fix for the recent change with API, again...
-        if len(response) == 0:
-            response = []
-            tmp = self.__matcher2.findall(res)
-            for item in tmp:
-                response.append('snippet: ' + item)
-            del tmp
+        #if len(response) == 0:
+
+        response = []
+        tmp = self.__matcher2.findall(res)
+        for item in tmp:
+            response.append('snippet: ' + item)
+        del tmp
 
         ans = {}
         for item in response:
@@ -63,19 +65,19 @@ class DDG_Scraper(BaseEngine):
                 }
             except Exception as e:
                 msg = f"\"{e}\" while parsing: \"{item}\""
-                self.logger.warning(msg)
+                logger.warning(msg)
         return ans
 
     def __load_urls(self, urls):
-        self.logger.info("Scraping the urls")
-        ans = self.loader.aload(urls)
-        self.logger.info("Scraping is finished")
+        logger.info("Scraping the urls")
+        ans = asyncio.run(self.loader.aload(urls))
+        logger.info("Scraping is finished")
         return ans
 
     async def __aload_urls(self, urls):
-        self.logger.info("Scraping the urls")
+        logger.info("Scraping the urls")
         ans = await self.loader.aload(urls)
-        self.logger.info("Scraping is finished")
+        logger.info("Scraping is finished")
         return ans
 
     def __validate(self, result):
@@ -124,7 +126,7 @@ class DDG(BaseEngine):
     def __init__(self,
                  max_results: Optional[int] = 20):
 
-        self.logger = logging.getLogger('DDG-Engine')
+        logger = logging.getLogger('DDG-Engine')
         self.engine = DuckDuckGoSearchResults(num_results=max_results)
         self.__matcher = re.compile(r'\[([^\]]+)\]')
         self.__matcher2 = re.compile(r"(?<=snippet: )(.*?)(?=, snippet: )")
@@ -171,25 +173,25 @@ class DDG(BaseEngine):
                 }
             except Exception as e:
                 msg = f"\"{e}\" while parsing: \"{item}\""
-                self.logger.warning(msg)
+                logger.warning(msg)
         return ans
 
     def __load_urls(self, urls):
         # https://www.reddit.com/r/Piracy/comments/180u498/how_to_bypass_any_paywall/
         loader = AsyncChromiumLoader(urls, user_agent = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)')
         html_chr_a = asyncio.run(loader.aload())
-        self.logger.info("Converting HTML to text using html2text")
+        logger.info("Converting HTML to text using html2text")
         ans = self.html2text.transform_documents(html_chr_a)
-        self.logger.info("Done converting")
+        logger.info("Done converting")
         return ans
 
     async def __aload_urls(self, urls):
         # https://www.reddit.com/r/Piracy/comments/180u498/how_to_bypass_any_paywall/
         loader = AsyncChromiumLoader(urls, user_agent = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)')
         html_chr_a = await loader.aload()
-        self.logger.info("Converting HTML to text using html2text")
+        logger.info("Converting HTML to text using html2text")
         ans = self.html2text.transform_documents(html_chr_a)
-        self.logger.info("Done converting")
+        logger.info("Done converting")
         return ans
 
     def __validate(self, result):
