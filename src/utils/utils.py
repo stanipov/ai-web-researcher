@@ -9,7 +9,7 @@ def set_logger():
 
     logFormatter = logging.Formatter(
         #fmt="[%(asctime)s] [%(name)8s] [%(levelname)-8s] %(message)s"
-        fmt="[%(asctime)s] [%(levelname)-8s] [%(module)s:%(lineno)s - %(funcName)20s()]  %(message)s"
+        fmt="[%(asctime)s] [%(levelname)-8s] [%(module)s:%(lineno)s - %(funcName)20s()] %(message)s"
     )
     ch = logging.StreamHandler(sys.stdout)
     ch.setFormatter(logFormatter)
