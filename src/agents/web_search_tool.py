@@ -1,8 +1,6 @@
 import logging
 from typing import List, Dict, Union, Optional
 
-from IPython.utils.openpy import read_py_url
-
 from utils.utils import count_words
 import time
 from hashlib import md5
@@ -10,9 +8,10 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-
 class WebSearchTool:
-    def __int__(self, scraper, summarizer,
+    def __int__(self,
+                scraper,
+                summarizer,
                 frac2sum:float=0.3,
                 hard_sum_th:int=700,
                 min_txt_len:int=200,
@@ -21,6 +20,7 @@ class WebSearchTool:
                 ):
         """
         Wrapper to perform a query search and summarize the results.
+        scraper: a class instance that scrapes an url. It must support at least invoke method.
         """
         if scraper is not None:
             self.scraper = scraper
@@ -34,11 +34,47 @@ class WebSearchTool:
         self.sum_num_retries = sum_num_retries
         self.api_retry_time = api_retry_time
 
+    async def ascrape_query(self, query: str) -> Dict[str, str]:
+        """
+        Async scrape of data for a query
+        """
+        # check the inputs
+        if query is None:
+            logger.warning(f"Query can't be None!")
+            return None
+        if query == "":
+            logger.warning(f"Query can't be empty string!")
+            return None
+
+        _ok = True
+        search_results = {}
+        t_start = time.time()
+        logger.info(f"Query: \"{query}\"")
+
+        try:
+            search_results = await self.scraper.ainvoke(query)
+        except Exception as e:
+            logger.error(f"Query: {query} failed with \"{e}\"")
+            _ok = False
+
+        if _ok:
+            # add some metadata:
+            for url in search_results:
+                search_results[url]['text_count'] = count_words(search_results[url]['text'])
+                search_results[url]['query'] = query
+                search_results[url]['summ_count'] = ''
+                search_results[url]['summary'] = ""
+                search_results[url]['id'] = md5(query.encode('utf-8', errors='replace')).hexdigest()
+                search_results[url]['ts'] = datetime.utcnow().timestamp()
+
+            logger.info(f"Finished scraping in {time.time() - t_start:.1f} seconds")
+
+        return search_results
+
     def scrape_query(self, query: str) -> Dict[str, str]:
         """
-        Scrapes data for a query
+        Sync scrape of a query results
         """
-
         # check the inputs
         if query is None:
             logger.warning(f"Query can't be None!")
@@ -74,7 +110,7 @@ class WebSearchTool:
 
     def scrape_queries(self, queries: List[str]) -> Dict[str, str]:
         """
-        Scrapes queries in a list
+        Sync scrape of queries in a list
         """
         if type(queries) != list:
             logger.error(f"Queries must be type List[str], got {type(queries)}")
@@ -85,10 +121,22 @@ class WebSearchTool:
             results.update(r)
         return results
 
+    async def ascrape_queries(self, queries: List[str]) -> Dict[str, str]:
+        """
+        Async scrape of queries in a list
+        """
+        if type(queries) != list:
+            logger.error(f"Queries must be type List[str], got {type(queries)}")
+            return None
+        results = {}
+        for q in queries:
+            r = await self.ascrape_query(q)
+            results.update(r)
+        return results
+
     def summarize_search_results(self, results:Dict[str, str]) -> Dict[str, str]:
         """
         Summarizes all scraped results
-
         """
         for idx, url in enumerate(results):
             text_count = results[url]['text_count']
