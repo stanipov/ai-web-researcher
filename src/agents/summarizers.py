@@ -1,22 +1,105 @@
 from typing import Literal, Dict, Union
+
+from dask.dataframe.hyperloglog import estimate_count
+from ipykernel.jsonutil import json_clean
+# For a Plain Summarizer
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import SystemMessage
+from langchain_core.prompts import HumanMessagePromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
+import time
+
+from utils.utils import count_words
+
+# logging
+import logging
+logger = logging.getLogger(__name__)
+
+class PlainSummarizer:
+    """
+    A simple summarizer which does not use LangGraph's graphs for better control
+    and simplicity.
+
+    summarize() method accepts a dictionary message to call the LC chain. The output
+    is expected to be a JSON, and if parsing fails, it will make specified number of attempts
+    delayed by specified  number of seconds
+    """
+    def __init__(self,
+                sum_msgs: Dict[str, str],
+                llm,
+                num_words_summ_th:int = 700):
+
+        sys_summ_prt = sum_msgs.get('system', "")
+        task_summ_prt = sum_msgs.get('task', "")
+        summ_prompt = ChatPromptTemplate.from_messages([
+            SystemMessage(content=sys_summ_prt),
+            HumanMessagePromptTemplate.from_template(task_summ_prt)
+        ])
+        self.summ_chain = summ_prompt | llm
+        self.max_summ_len = num_words_summ_th
+        self.json_parser = JsonOutputParser()
+
+    def summarize(self, sum_msg:Dict[str, str],
+                  num_retries: int=0,
+                  api_retry_time:int=0) -> Dict[str, str]:
+        """
+        Summarizes text provided into summ_msg. Contents of the sum_msg depends
+        on what variables are expected in the summarization task template.
+
+        For example:
+            sum_msg = {
+                "query": query text,
+                "text": text to summarize,
+                "num_words": maximal length summary
+            }
+        """
+        raw_res = self.summ_chain.invoke(sum_msg)
+
+        _sum = None
+        try:
+            _sum = self.json_parser.invoke(raw_res)
+        except Exception as e:
+            logger.error(f"Could not parse the output. Retrying one more time in {api_retry_time} seconds.")
+            for i in range(num_retries):
+                logger.info(f"Retry: {i+1}/{num_retries} in {api_retry_time} seconds.")
+                time.sleep(api_retry_time)
+                raw_res = self.summ_chain.invoke(sum_msg)
+                try:
+                    _sum = self.json_parser.invoke(raw_res)
+                except Exception as e:
+                    logger.error(f"Retry: {i+1}/{num_retries} failed.")
+
+        if _sum is not None:
+            _sum['summ_count'] = count_words(_sum['summary'])
+            logger.info(f"Successfully summarized.")
+        else:
+            logger.warning(f"Failed to summarize.")
+
+        return _sum
+
+########################################################################################################################
+#
+#                                               Old Stuff to Deprecate
+#
+########################################################################################################################
 from langgraph.graph import StateGraph, START, END
 from functools import partial
 
 from agents.agent_states import SimpleSummarizerState, AdvancedSummarizerState
 from agents.nodes import BasicJSONNode, BasicStrNode
 
-import logging
-
 def is_relevant_router(state: Union[SimpleSummarizerState, AdvancedSummarizerState]) -> Literal["proceed","__end__"]:
     """Conditional edge function"""
     if state['relevant']:
+        logger.info("URL is relevant")
         return "proceed"
     else:
+        logger.info("URL is NOT relevant")
         return "__end__"
 
 
 def state_init(state: SimpleSummarizerState):
-    return {"summary": ""}
+    return {"summary": "", "relevant": True}
 
 
 def func_validator(state: Union[SimpleSummarizerState, AdvancedSummarizerState], val_node: BasicJSONNode):
@@ -52,47 +135,29 @@ def func_rephraser(state: Union[SimpleSummarizerState, AdvancedSummarizerState],
     return rephr_node(message)
 
 
-class SimpleSummarizer:
+class D_PlainSummarizer:
     """
-    A simple summarizer graph.
+    A primitive summarizer graph with unconditional summarization.
     The summarizer will provide summary no longer than a predefined number of words
     (can be any integer or "any" for unrestricted length)
     """
     def __init__(self,
-                 val_msgs: Dict[str, str],
-                 sum_msgs: Dict[str, str],
-                 llm):
-
-        self.logger = logging.getLogger('SimpleSummarizer')
-
-        self.logger.info("Setting the nodes")
-        NodeValidator = BasicJSONNode(val_msgs, llm)
-        NodeSummarizer = BasicStrNode(sum_msgs, llm, 'summary')
-
-        validator = partial(func_validator, val_node=NodeValidator)
+                sum_msgs: Dict[str, str],
+                llm,
+                num_words_summ_th:int = 300):
+        NodeSummarizer = BasicJSONNode(sum_msgs, llm)
         summarizer = partial(func_summarizer, sum_node=NodeSummarizer)
 
-        self.logger.info("Setting the graph")
+        logger.info("Setting the graph")
         graph = StateGraph(SimpleSummarizerState)
         graph.add_node('init', state_init)
-        graph.add_node('validate', validator)
         graph.add_node('summarize', summarizer)
         graph.set_entry_point('init')
-        graph.add_edge('init', 'validate')
-        graph.add_conditional_edges(
-            'validate',
-            is_relevant_router,
-            {
-                'proceed': 'summarize',
-                '__end__': END
-            }
-
-        )
-
-        self.logger.info("Compiling the graph")
+        graph.add_edge('init', 'summarize')
         graph.add_edge('summarize', END)
-
+        logger.info("Compiling the graph")
         self.graph = graph.compile()
+        self.num_words_summ_th = num_words_summ_th
 
     def rollback_result(self, query):
         """
@@ -110,13 +175,89 @@ class SimpleSummarizer:
         return state
 
     def invoke(self, query: Dict[str, Union[str, int, float]]) -> Dict[str, str]:
-        try:
-            return self.graph.invoke(query)
-        except Exception as e:
-            self.logger.warning(f"Graph invocation failed with '{e}")
-            self.logger.warning(f"Returning rollback values")
-            return self.rollback_result(query)
+        if count_words(query['text']) <= self.num_words_summ_th:
+            try:
+                return self.graph.invoke(query)
+            except Exception as e:
+                logger.warning(f"Graph invocation failed with '{e}")
+                logger.warning(f"Returning rollback values")
+                return self.rollback_result(query)
+        else:
+            state = self.rollback_result(query)
+            state['summary'] = ''
+            return state
 
+
+class SimpleSummarizer:
+    """
+    A simple summarizer graph.
+    The summarizer will provide summary no longer than a predefined number of words
+    (can be any integer or "any" for unrestricted length)
+    """
+    def __init__(self,
+                 val_msgs: Dict[str, str],
+                 sum_msgs: Dict[str, str],
+                 llm,
+                 num_words_summ_th:int = 300):
+
+        logger.info("Setting the nodes")
+        NodeValidator = BasicJSONNode(val_msgs, llm)
+        #NodeSummarizer = BasicStrNode(sum_msgs, llm, 'summary')
+        NodeSummarizer = BasicJSONNode(sum_msgs, llm)
+
+        validator = partial(func_validator, val_node=NodeValidator)
+        summarizer = partial(func_summarizer, sum_node=NodeSummarizer)
+
+        logger.info("Setting the graph")
+        graph = StateGraph(SimpleSummarizerState)
+        graph.add_node('init', state_init)
+        graph.add_node('validate', validator)
+        graph.add_node('summarize', summarizer)
+        graph.set_entry_point('init')
+        graph.add_edge('init', 'validate')
+        graph.add_conditional_edges(
+            'validate',
+            is_relevant_router,
+            {
+                'proceed': 'summarize',
+                '__end__': END
+            }
+
+        )
+
+        logger.info("Compiling the graph")
+        graph.add_edge('summarize', END)
+
+        self.graph = graph.compile()
+        self.num_words_summ_th = num_words_summ_th
+
+    def rollback_result(self, query):
+        """
+        Rollback values when the summarization graph fails. This often happens because
+        a model believes it has been asked something it was censored for
+        :param query: user query
+        :return: SimpleSummarizerState()
+        """
+        state = SimpleSummarizerState()
+        state['text'] = query['text']
+        state['query'] = query['query']
+        state['num_words'] = query['num_words']
+        state['summary'] = 'fail'
+        state['relevant'] = True
+        return state
+
+    def invoke(self, query: Dict[str, Union[str, int, float]]) -> Dict[str, str]:
+        if count_words(query['text']) <= self.num_words_summ_th:
+            try:
+                return self.graph.invoke(query)
+            except Exception as e:
+                logger.warning(f"Graph invocation failed with '{e}")
+                logger.warning(f"Returning rollback values")
+                return self.rollback_result(query)
+        else:
+            state = self.rollback_result(query)
+            state['summary'] = ''
+            return state
 
 
 class AdvancedSummarizer:
@@ -129,20 +270,22 @@ class AdvancedSummarizer:
                  val_msgs: Dict[str, str],
                  sum_msgs: Dict[str, str],
                  rewrt_msgs: Dict[str, str],
-                 llm):
+                 llm,
+                 num_words_summ_th:int = 300):
 
-        self.logger = logging.getLogger('SimpleSummarizer')
+        logger = logging.getLogger('SimpleSummarizer')
 
-        self.logger.info("Setting the nodes")
+        logger.info("Setting the nodes")
         NodeValidator = BasicJSONNode(val_msgs, llm)
         NodeSummarizer = BasicStrNode(sum_msgs, llm, 'summary')
         NodeRewriter = BasicJSONNode(rewrt_msgs, llm)
+        self.num_words_summ_th = num_words_summ_th
 
         validator = partial(func_validator, val_node=NodeValidator)
         summarizer = partial(func_summarizer, sum_node=NodeSummarizer)
         rewriter = partial(func_rephraser, rephr_node=NodeRewriter)
 
-        self.logger.info("Setting the graph")
+        logger.info("Setting the graph")
         graph = StateGraph(AdvancedSummarizerState)
         graph.add_node('init', state_init)
         graph.add_node('validate', validator)
@@ -160,7 +303,7 @@ class AdvancedSummarizer:
 
         )
         graph.add_edge('prompt_rewriter', 'summarize')
-        self.logger.info("Compiling the graph")
+        logger.info("Compiling the graph")
         graph.add_edge('summarize', END)
 
         self.graph = graph.compile()
@@ -182,9 +325,14 @@ class AdvancedSummarizer:
         return state
 
     def invoke(self, query: Dict[str, Union[str, int, float]]) -> Dict[str, str]:
-        try:
-            return self.graph.invoke(query)
-        except Exception as e:
-            self.logger.warning(f"Graph invocation failed with '{e}")
-            self.logger.warning(f"Returning rollback values")
-            return self.rollback_result(query)
+        if count_words(query['text']) <= self.num_words_summ_th:
+            try:
+                return self.graph.invoke(query)
+            except Exception as e:
+                logger.warning(f"Graph invocation failed with '{e}")
+                logger.warning(f"Returning rollback values")
+                return self.rollback_result(query)
+        else:
+            state = self.rollback_result(query)
+            state['summary'] = ''
+            return state
