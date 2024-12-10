@@ -10,6 +10,13 @@ from langchain_community.document_loaders import AsyncChromiumLoader
 logger = logging.getLogger(__name__)
 
 class DDG_Scraper(BaseEngine):
+    """
+    TODO: grand: use original DDG API calls rather than LangChain's wrappers
+    TODO: smaller: add region, time, source like here:
+        wrapper = DuckDuckGoSearchAPIWrapper(region="de-de", time="d", max_results=2)
+        search = DuckDuckGoSearchResults(api_wrapper=wrapper, source="news")
+        (https://python.langchain.com/docs/integrations/tools/ddg/)
+    """
     def __init__(self,
                 loader,
                 max_results: Optional[int] = 20):

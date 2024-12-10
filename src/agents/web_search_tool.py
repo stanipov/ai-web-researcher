@@ -3,20 +3,25 @@ from typing import List, Dict, Union, Optional
 
 from utils.utils import count_words
 import time
-from hashlib import md5
 from datetime import datetime
+
+## temp
+import os, pickle
+from hashlib import md5
+##
 
 logger = logging.getLogger(__name__)
 
 class WebSearchTool:
-    def __int__(self,
+    def __init__(self,
                 scraper,
                 summarizer,
                 frac2sum:float=0.3,
                 hard_sum_th:int=700,
                 min_txt_len:int=200,
+                max_txt_len:int=5000,
                 sum_num_retries:int=1,
-                api_retry_time:int=3
+                api_retry_time:int=3,
                 ):
         """
         Wrapper to perform a query search and summarize the results.
@@ -33,6 +38,8 @@ class WebSearchTool:
         self.min_txt_len = min_txt_len
         self.sum_num_retries = sum_num_retries
         self.api_retry_time = api_retry_time
+        self.max_txt_len = max_txt_len
+
 
     async def ascrape_query(self, query: str) -> Dict[str, str]:
         """
@@ -66,6 +73,7 @@ class WebSearchTool:
                 search_results[url]['summary'] = ""
                 search_results[url]['id'] = md5(query.encode('utf-8', errors='replace')).hexdigest()
                 search_results[url]['ts'] = datetime.utcnow().timestamp()
+                search_results[url]['model_name'] = self.summarizer.model_name
 
             logger.info(f"Finished scraping in {time.time() - t_start:.1f} seconds")
 
@@ -138,20 +146,33 @@ class WebSearchTool:
         """
         Summarizes all scraped results
         """
-        for idx, url in enumerate(results):
-            text_count = results[url]['text_count']
-            if text_count > self.min_txt_len:
-                logger.info(f"Summarizing: {idx+1}/{len(results)}.")
-                msg = {
-                    "query": results[url]['query'],
-                    "text": results[url]['text'],
-                    "num_words": min(int(text_count * self.frac2sum), self.hard_sum_th)
-                }
-                sum_url = self.summarizer.summarize(msg,
-                                                    num_retries=self.sum_num_retries,
-                                                    api_retry_time=self.api_retry_time)
-                if sum_url is not None:
-                    results[url]['summary'] = sum_url['summary']
-                    results[url]['summ_count'] = sum_url['summ_count']
+        if results is not None:
+            for idx, url in enumerate(results):
+                text_count = results[url]['text_count']
+                if text_count > self.min_txt_len and text_count <= self.max_txt_len:
+                    logger.info(f"Summarizing: {idx+1}/{len(results)}.")
+                    msg = {
+                        "query": results[url]['query'],
+                        "text": results[url]['text'],
+                        "num_words": min(int(text_count * self.frac2sum), self.hard_sum_th)
+                    }
+                    sum_url = self.summarizer.summarize(msg,
+                                                        num_retries=self.sum_num_retries,
+                                                        api_retry_time=self.api_retry_time)
 
-        return results
+                    if sum_url is not None:
+                        results[url]['summary'] = sum_url['summary']
+                        results[url]['summ_count'] = sum_url['summ_count']
+                    else:
+                        logger.warning(f"Summarization has failed, skipping")
+
+                    logger.info(f"Waiting {self.api_retry_time} sec")
+                    time.sleep(self.api_retry_time)
+                else:
+                    logger.warning(f"Too short or too long for summarization (got ~{text_count} words), passing")
+
+
+            return results
+
+        else: # nothing to summarize
+            return None

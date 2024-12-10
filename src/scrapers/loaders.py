@@ -12,7 +12,8 @@ class ExtChromiumLoader:
                  ext_path:Union[str, None] = None,
                  user_agent:Union[str, None] = None,
                  headless:bool = True,
-                 proxy: Dict[str, str] = None):
+                 proxy: Dict[str, str] = None,
+                 cookie_btns_text:List[str] = None):
         self.__ext_path = ext_path
         self.__user_agent = user_agent
         self.__headless = headless
@@ -41,7 +42,7 @@ class ExtChromiumLoader:
         self.html2text.ignore_images = True
         self.html2text.ignore_mailto_links = True
 
-        self.cookie_btns_text = ['Accept', 'Allow', 'Consent', 'OK', 'Continue']
+        self.cookie_btns_text = cookie_btns_text
 
 
     async def __aload_urls(self, playwright: Playwright, urls: List[str]):
@@ -70,16 +71,18 @@ class ExtChromiumLoader:
                 continue
 
             # Accept cookies
-            logger.info(f"Accepting cookies if any")
-            for btn in self.cookie_btns_text:
-                #logger.info(f"Accepting cookies if any; looking for \"{btn}\" button.")
-                try:
-                    await page.locator(f'button:has-text("{btn}")').click(timeout=1500)
-                    break
-                    #await page.get_by_role('button', name=re.compile(f'{btn}', re.IGNORECASE)).click(timeout=1500)
-                except Exception as e:
-                    #logger.info(f'While trying to accept cookies, got "{e}"')
-                    pass
+            if self.cookie_btns_text is not None:
+                logger.info(f"Accepting cookies if any")
+                for btn in self.cookie_btns_text:
+                    #logger.info(f"Accepting cookies if any; looking for \"{btn}\" button.")
+                    try:
+                        #await page.locator(f'button:has-text("{btn}")').click(timeout=1500)
+                        #break
+                        await page.get_by_role('button', name=re.compile(f'{btn}', re.IGNORECASE)).click(timeout=1500)
+                        break
+                    except Exception as e:
+                        #logger.info(f'While trying to accept cookies, got "{e}"')
+                        pass
 
             try:
                 logger.info(f'Converting to HTML')

@@ -1,13 +1,16 @@
+from copyreg import pickle
+from doctest import debug
 from typing import Literal, Dict, Union
+from src.utils.utils import make_data_dst
 
-from dask.dataframe.hyperloglog import estimate_count
-from ipykernel.jsonutil import json_clean
 # For a Plain Summarizer
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import HumanMessagePromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
-import time
+import time, os, pickle
+from hashlib import md5
+from datetime import datetime
 
 from utils.utils import count_words
 
@@ -27,7 +30,7 @@ class PlainSummarizer:
     def __init__(self,
                 sum_msgs: Dict[str, str],
                 llm,
-                num_words_summ_th:int = 700):
+                debug_loc:str|None=None):
 
         sys_summ_prt = sum_msgs.get('system', "")
         task_summ_prt = sum_msgs.get('task', "")
@@ -36,8 +39,20 @@ class PlainSummarizer:
             HumanMessagePromptTemplate.from_template(task_summ_prt)
         ])
         self.summ_chain = summ_prompt | llm
-        self.max_summ_len = num_words_summ_th
         self.json_parser = JsonOutputParser()
+
+        try:
+            self.model_name = llm.model_name
+        except Exception as e:
+            logger.warning(f"Could not find model name, use default! Error: {e}")
+            self.model_name = "generic_llm"
+
+        if debug_loc:
+            if debug_loc == "":
+                debug_loc = os.getcwd()
+            debug_loc = os.path.join(debug_loc, 'PlainSummarizer')
+            os.makedirs(debug_loc, exist_ok=True)
+        self.debug_loc = debug_loc
 
     def summarize(self, sum_msg:Dict[str, str],
                   num_retries: int=0,
@@ -53,9 +68,11 @@ class PlainSummarizer:
                 "num_words": maximal length summary
             }
         """
+        t_start = time.time()
         raw_res = self.summ_chain.invoke(sum_msg)
 
         _sum = None
+
         try:
             _sum = self.json_parser.invoke(raw_res)
         except Exception as e:
@@ -69,11 +86,34 @@ class PlainSummarizer:
                 except Exception as e:
                     logger.error(f"Retry: {i+1}/{num_retries} failed.")
 
-        if _sum is not None:
-            _sum['summ_count'] = count_words(_sum['summary'])
-            logger.info(f"Successfully summarized.")
+        if type(_sum) == dict:
+            if 'summary' in _sum:
+                _sum['summ_count'] = count_words(_sum['summary'])
+                logger.info(f"Successfully summarized in {time.time() - t_start :.2f} sec.")
+            else:
+                logger.error(f"Could not find summary kw in the results: {_sum.keys()}")
+
+                if self.debug_loc:
+                    _hs = md5(str(sum_msg).encode('utf-8', 'gnore')).hexdigest()
+                    _dt = datetime.utcnow().strftime("%Y-%m-%d")
+                    fname = os.path.join(self.debug_loc, f"{_dt}-{_hs}.pkl")
+                    logger.debug(f"Dumping results as is to {fname}")
+                    dump_obj = {
+                        'msg': sum_msg,
+                        'raw_response': raw_res,
+                        'converted': _sum
+                    }
+                    try:
+                        with open(fname, 'wb') as f:
+                            pickle.dump(dump_obj, f)
+                        logger.debug("Dump succeed")
+                    except Exception as e:
+                        logger.error(f"While dumping for this error: {e}")
+
+                _sum = None
         else:
-            logger.warning(f"Failed to summarize.")
+            logger.warning(f"Failed to summarize. Output type: {type(_sum)}")
+            _sum = None
 
         return _sum
 
