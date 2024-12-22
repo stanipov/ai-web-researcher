@@ -15,6 +15,11 @@ from typing import Dict, List
 from langchain_core.runnables.base import Runnable
 
 class LLMWrapper:
+    """
+    TODO
+        - add support of more parameters for a "native" support of Ollama as these
+        go typically to model_kwargs of API model
+    """
     def __init__(self):
         self.ollama_aoi_d = ollama_aoi_d
         self.ollama_base_url = "http://localhost:11434/v1"
