@@ -53,6 +53,16 @@ class LLMWrapper:
         model_kw = config.get('model_kw', None)
         max_tokens = config.get('max_tokens', None)
 
+        # ollama specific paramters
+        # default values come from
+        # # https://python.langchain.com/v0.2/api_reference/ollama/chat_models/langchain_ollama.chat_models.ChatOllama.html
+        ol_keep_alive = model_kw.get('keep_alive', None)
+        ol_num_ctx = model_kw.get('num_ctx', 2048)
+        ol_num_predict = model_kw.get('num_predict', None)
+        ol_repeat_last_n = model_kw.get('repeat_last_n', 64)
+        ol_repeat_penalty = model_kw.get('repeat_penalty', None)
+        ol_top_p = model_kw.get('top_p', None)
+
         llm = None
 
         if tp == "api":
@@ -89,6 +99,12 @@ class LLMWrapper:
                 else:
                     logger.info("Using dedicated langchain's client")
                     llm = ChatOllama(model=model_name,
-                                     temperature=temperature)
+                                     temperature=temperature,
+                                     keep_alive=ol_keep_alive,
+                                     num_ctx=ol_num_ctx,
+                                     num_predict=ol_num_predict,
+                                     repeat_last_n=ol_repeat_last_n,
+                                     repeat_penalty=ol_repeat_penalty,
+                                     top_p=ol_top_p)
 
         return llm
