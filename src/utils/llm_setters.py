@@ -15,11 +15,7 @@ from typing import Dict, List
 from langchain_core.runnables.base import Runnable
 
 class LLMWrapper:
-    """
-    TODO
-        - add support of more parameters for a "native" support of Ollama as these
-        go typically to model_kwargs of API model
-    """
+
     def __init__(self):
         self.ollama_aoi_d = ollama_aoi_d
         self.ollama_base_url = "http://localhost:11434/v1"
@@ -38,6 +34,12 @@ class LLMWrapper:
         tp, srv_name = config['type'].lower().split(':')
         assert tp in self.__supported_srv_types, f"Supported types are \"{', '.join(self.__supported_srv_types)}\", got {tp}"
         assert srv_name in self.__supported_services, f"Supported services are \"{', '.join(self.__supported_services)}\", got {srv_name}"
+        ollama_base_url = config.get('ollama_base_url', '')
+        if ollama_base_url != "":
+            self.ollama_base_url = ollama_base_url
+        else:
+            logger.warning(f"No base Ollama URL found, using default {self.ollama_base_url}")
+
 
         if tp == 'api':
             assert config['api_key'] is not None and config['api_key']!= '', f"API key can't be empty for an API model!"
