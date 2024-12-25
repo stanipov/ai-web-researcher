@@ -3,12 +3,8 @@ from typing import List, Dict, Union, Optional
 
 from utils.utils import count_words
 import time
-from datetime import datetime
-
-## temp
-import os, pickle
 from hashlib import md5
-##
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +28,7 @@ class WebSearchTool:
         else:
             logger.error(f"Scraper can't be None!")
             return -1
+
         self.summarizer = summarizer
         self.frac2sum = frac2sum
         self.hard_sum_th = hard_sum_th
@@ -39,7 +36,6 @@ class WebSearchTool:
         self.sum_num_retries = sum_num_retries
         self.api_retry_time = api_retry_time
         self.max_txt_len = max_txt_len
-
 
     async def ascrape_query(self, query: str) -> Dict[str, str]:
         """

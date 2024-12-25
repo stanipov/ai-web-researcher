@@ -79,6 +79,7 @@ class ExtChromiumLoader:
                         #await page.locator(f'button:has-text("{btn}")').click(timeout=1500)
                         #break
                         await page.get_by_role('button', name=re.compile(f'{btn}', re.IGNORECASE)).click(timeout=1500)
+                        logger.debug(f"\"{btn}\" was clicked")
                         break
                     except Exception as e:
                         #logger.info(f'While trying to accept cookies, got "{e}"')

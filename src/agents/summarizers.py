@@ -1,6 +1,9 @@
 from copyreg import pickle
 from doctest import debug
 from typing import Literal, Dict, Union
+
+from sqlalchemy.log import echo_property
+
 from src.utils.utils import make_data_dst
 
 # For a Plain Summarizer
@@ -69,7 +72,11 @@ class PlainSummarizer:
             }
         """
         t_start = time.time()
-        raw_res = self.summ_chain.invoke(sum_msg)
+        try:
+            raw_res = self.summ_chain.invoke(sum_msg)
+        except Exception as e:
+            logger.error(f"API call to the LLM failed with \"{e}\". Aborting")
+            return None
 
         _sum = None
 
@@ -89,7 +96,7 @@ class PlainSummarizer:
         if type(_sum) == dict:
             if 'summary' in _sum:
                 _sum['summ_count'] = count_words(_sum['summary'])
-                logger.info(f"Successfully summarized in {time.time() - t_start :.2f} sec.")
+                logger.info(f"Successfully summarized in {time.time() - t_start :.2f} sec; {_sum['summ_count']} words")
             else:
                 logger.error(f"Could not find summary kw in the results: {_sum.keys()}")
 
