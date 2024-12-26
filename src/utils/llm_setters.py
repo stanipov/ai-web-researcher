@@ -40,7 +40,6 @@ class LLMWrapper:
         else:
             logger.warning(f"No base Ollama URL found, using default {self.ollama_base_url}")
 
-
         if tp == 'api':
             assert config['api_key'] is not None and config['api_key']!= '', f"API key can't be empty for an API model!"
         api_key = config['api_key']
@@ -52,18 +51,26 @@ class LLMWrapper:
         req_timeout = config.get('req_timeout', None)
         max_retries = config.get('max_retries', 1)
         temperature = config.get('temperature', 0)
-        model_kw = config.get('model_kw', None)
         max_tokens = config.get('max_tokens', None)
+
+        model_kw = config.get('model_kw', {})
+        if model_kw is not None:
+            if type(model_kw) != dict:
+                logger.warning(f"model_kw is expected to be dict when is not none, got {type(model_kw)}! Will assume empty dict")
+                model_kw = {}
+        if model_kw is None:
+            model_kw = {}
 
         # ollama specific paramters
         # default values come from
         # # https://python.langchain.com/v0.2/api_reference/ollama/chat_models/langchain_ollama.chat_models.ChatOllama.html
-        ol_keep_alive = model_kw.get('keep_alive', None)
-        ol_num_ctx = model_kw.get('num_ctx', 2048)
-        ol_num_predict = model_kw.get('num_predict', None)
-        ol_repeat_last_n = model_kw.get('repeat_last_n', 64)
-        ol_repeat_penalty = model_kw.get('repeat_penalty', None)
-        ol_top_p = model_kw.get('top_p', None)
+        if model_kw is not None:
+            ol_keep_alive = model_kw.get('keep_alive', None)
+            ol_num_ctx = model_kw.get('num_ctx', 2048)
+            ol_num_predict = model_kw.get('num_predict', None)
+            ol_repeat_last_n = model_kw.get('repeat_last_n', 64)
+            ol_repeat_penalty = model_kw.get('repeat_penalty', None)
+            ol_top_p = model_kw.get('top_p', None)
 
         llm = None
 

@@ -18,7 +18,7 @@ def validate_global_config(cfg: Dict[str, str|Any]) -> bool:
     # each entry is a dict type
     logger.info(f"Validating global config: valid dictionaries")
     for key in MANDATORY_ATTRS:
-        if type(cfg['key']) != dict:
+        if type(cfg[key]) != dict:
             logger.error(f"Entry for key \"{key}\" is not dict, got {type(cfg['key'])}")
             return False
 

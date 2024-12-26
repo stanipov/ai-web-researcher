@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 
 from src.governors.base_classes import BaseSearchGvt
 from src.utils.llm_setters import  LLMWrapper
-from src.agents.summarizers import PlainSummarizer
 from src.utils.scraper_setters import ScraperInit
 from src.utils.set_summarizers import SummarizerInit
 from src.utils.config import validate_global_config
@@ -15,7 +14,7 @@ from src.utils.config import validate_global_config
 logger = logging.getLogger(__name__)
 
 class WebSearchGvt(BaseSearchGvt):
-    def __int__(self, config):
+    def __init__(self, config):
 
         cfg_ok = validate_global_config(config)
         if cfg_ok:
