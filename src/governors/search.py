@@ -42,18 +42,27 @@ class WebSearchGvt(BaseSearchGvt):
         logger.info('Setting the LLM')
         llm_setter = LLMWrapper()
         llm = llm_setter.set_llm(config['llm'])
+        if llm is None:
+            logger.error(f"Could not set LLM!")
+            raise ValueError(f"Could not set LLM!")
         logger.info('LLM is set')
 
         # scraper
         logger.info("Setting the scraper")
         scraper_setter = ScraperInit()
         scraper = scraper_setter.set_scrapper(config)
+        if scraper is None:
+            logger.error(f"Could not set scraper!")
+            raise ValueError(f"Could not set scraper!")
         logger.info("Scraper is set")
 
         # Summarizer
         logger.info("Setting the summarizer")
         SummInit = SummarizerInit()
         summarizer = SummInit.set_summarizer(config, llm)
+        if summarizer is None:
+            logger.error(f"Could not set summarizer!")
+            raise ValueError(f"Could not set summarizer!")
         logger.info("Summarizer is set")
 
         # WebSearchTool
@@ -66,4 +75,7 @@ class WebSearchGvt(BaseSearchGvt):
                                     max_txt_len=max_txt_len,
                                     sum_num_retries=sum_num_retries,
                                     api_retry_time=api_retry_time)
+        if self.search_tool is None:
+            logger.error(f"Could not set search_tool!")
+            raise ValueError(f"Could not set search_tool!")
         logger.info("WebSearchTool is set")

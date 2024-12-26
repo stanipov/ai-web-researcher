@@ -61,7 +61,7 @@ class LLMWrapper:
         if model_kw is None:
             model_kw = {}
 
-        # ollama specific paramters
+        # ollama specific parameters
         # default values come from
         # # https://python.langchain.com/v0.2/api_reference/ollama/chat_models/langchain_ollama.chat_models.ChatOllama.html
         if model_kw is not None:

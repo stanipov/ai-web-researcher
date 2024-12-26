@@ -27,7 +27,7 @@ class WebSearchTool:
             self.scraper = scraper
         else:
             logger.error(f"Scraper can't be None!")
-            return -1
+            return None
 
         self.summarizer = summarizer
         self.frac2sum = frac2sum
