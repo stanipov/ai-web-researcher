@@ -5,8 +5,6 @@ import asyncio
 import re
 import logging
 from typing import List, Dict, Required, Optional
-from langchain_community.document_transformers import Html2TextTransformer
-from langchain_community.document_loaders import AsyncChromiumLoader
 
 logger = logging.getLogger(__name__)
 
@@ -57,10 +55,6 @@ class DDG_Scraper(BaseEngine):
         :param res:
         :return:
         """
-        # this is an old part when search results were included into []
-        #response = self.__matcher.findall(res)
-        # this is a hot fix for the recent change with API, again...
-        #if len(response) == 0:
 
         response = res.split(self.results_sep)
 

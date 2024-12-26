@@ -1,29 +1,11 @@
-from typing import Dict, List
+from typing import Dict, Any
 
-from config import MANDATORY_ATTRS
 from src.scrapers.ddg import DDG_Scraper
 from src.scrapers.loaders import ExtChromiumLoader
 
 import logging
 logger = logging.getLogger(__name__)
 
-"""
-        "scrape":{
-            "loader": "chromium", # only supported
-            "ext_path": os.getenv('chrome_ext_pass'),
-            "headless": False,
-            "cookie_btns": ['Accept All', 'Accept', 'Allow', 'Allow All', 'Consent', 'OK', 'Continue'],
-        },
-        "search_engine": {
-            "name": "ddg",     # only supported
-            "region": "en-us", # not used for now, def "wt-wt" -- no region specified
-            "time": "d",       # None as default
-            "max_results": 25,
-            "resuts_sep": "<::SRC_SEP::>",
-            "search_source": None, # news, text
-            "safe_search": "off",
-        },
-"""
 
 SUPPORTED_SEARCH_ENGINES = ['ddg']
 SUPPORTED_LOADERS = ['chromium']
@@ -40,11 +22,10 @@ class ScraperInit:
         """
         Nothing to add yet
         """
-        pass
+        return
 
-    def sett_scrapper(self, config):
+    def set_scrapper(self, config: Dict[str, Any]):
         #
-
         logger.info(f"Verifying the config")
         # keys
         for fld in MANDATORY_ATTRS:

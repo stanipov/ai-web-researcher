@@ -76,7 +76,8 @@ class LLMWrapper:
                     max_tokens=max_tokens,
                     timeout=req_timeout,
                     max_retries=max_retries,
-                    model_kwargs = model_kw
+                    model_kwargs=model_kw,
+                    api_key=api_key
                 )
             if srv_name == 'groq':
                 logger.info("Setting Groq model")
@@ -85,7 +86,8 @@ class LLMWrapper:
                                max_tokens=max_tokens,
                                timeout=req_timeout,
                                max_retries=max_retries,
-                               model_kwargs = model_kw)
+                               model_kwargs=model_kw,
+                               api_key=api_key)
         if tp == "local":
             if srv_name == 'ollama':
                 if self.ollama_aoi_d:

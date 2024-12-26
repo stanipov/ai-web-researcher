@@ -50,10 +50,12 @@ class PlainSummarizer:
             logger.warning(f"Could not find model name, use default! Error: {e}")
             self.model_name = "generic_llm"
 
-        if debug_loc:
+        if debug_loc is not None:
             if debug_loc == "":
                 debug_loc = os.getcwd()
+                logger.warning(f"Debug folder is provided, but empty, using \"{debug_loc}\" as root")
             debug_loc = os.path.join(debug_loc, 'PlainSummarizer')
+            logger.info(f"Debug folder location: \"{debug_loc}\"")
             os.makedirs(debug_loc, exist_ok=True)
         self.debug_loc = debug_loc
 

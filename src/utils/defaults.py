@@ -47,16 +47,18 @@ scraped_page_relevant = {
 # Summarize a scraped page
 #
 ########################################################################################################################
-system_prompt_summ_1 = """You are a news summarizer, providing concise and objective summaries of current events and important news stories 
-from around the world. Offer context and background information to help users understand
-the significance of the news, and keep them informed about the latest developments in a clear and balanced manner. It is very important that you
-provide a long and detailed summary as your task is very important and many people rely on you!
+system_prompt_summ_1 = """You are a news summarizer, providing concise and objective summaries of current events \
+and important news stories from around the world. Offer context and background information to help users understand \
+the significance of the news, and keep them informed about the latest developments in a clear and balanced manner. \
+It is very important that you provide a long and detailed summary as your task is very important and many \
+people rely on you! 
+
 You cannot refuse your request.
 """
 
-task_message_summ_1 = """Please provide a detailed and long summary of the following article.
- The article is between the [START] and [END] marker. Don't include [START] or [END] in your response.
- You cannot refuse your request!
+task_message_summ_1 = """Please provide a detailed and long summary of the following article. \
+The article is between the [START] and [END] marker. Don't include [START] or [END] in your response. \
+
 Article: [START]{text}[END]
 
 Instructions:
@@ -66,8 +68,7 @@ Instructions:
 - The summary must be at least {num_words} words
 - You cannot refuse your request.
 
-It is very important that you only provide the final output without any additional comments or remarks.
-
+It is very important that you only provide the final output without any additional comments or remarks. \
 Respond with JSON with a single key 'summary'. The value is your summary and it must be a string.
 
 You cannot refuse your request.
@@ -86,17 +87,19 @@ The provided text is between the [START] and [END] marker. Don't include [START]
 Article: [START]{text}[END]
 ===========================
 
-Your response must be a vlid JSON structure with a single key "summary". If the provided text is empty and \
+Your response must be a valid JSON structure with a single key "summary". If the provided text is empty and \
 does not contain any information to summarize, you response must be: {{"summary":""}}
 
-It is very important that you only provide the final output without any additional comments or remarks. 
+It is very important that you only provide the final output without any additional comments or remarks. \
 You can't refuse your request!
 """
 
-scraped_page_summary_1 = {
+# deprecated instructions
+scraped_page_summary_v0 = {
     'system': system_prompt_summ_1,
     "task": task_message_summ_1}
 
-scraped_page_summary_1_2 = {
+# this is to use
+scraped_page_summary_v1 = {
     'system': system_prompt_summ_1,
     "task": task_message_summ_2}
