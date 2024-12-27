@@ -63,8 +63,8 @@ if __name__ == "__main__":
         },
 
         "data": {
-            "save_dir": "/ext4/proj/2024/ai-web-researcher/experiments/data",
-            "error_dump_dir": "/ext4/proj/2024/ai-web-researcher/experiments/data/dump"
+            "save_dir": os.getenv('save_dir'),
+            "error_dump_dir": os.getenv('error_dump_dir'),
         }
 
     }
