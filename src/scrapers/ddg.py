@@ -51,6 +51,25 @@ class DuckDuckGoWrapper:
         self.timelimit = timelimit
         self.engine = DDGS(timeout=timeout)
 
+    def __unify_results(self, results:List[Dict[str, str]]) -> List[Dict[str, str]]:
+        """
+        Unifies the output results from when source is "news" because
+         the output date contains somewhat different keys
+
+         :param results - List[Dict[str, str]] - list of dictionaries of results
+        """
+
+        ans = []
+        for item in results:
+            _t = {
+                "title": f"{item['title']} @ {item['source']}",
+                "body": item["body"],
+                "href": item["url"]
+            }
+            ans.append(_t)
+
+        return ans
+
     def run(self, query: str) -> List[Dict[str, str]]:
         """
         Searches DuckDuckGo based on the query and source type.
@@ -65,11 +84,12 @@ class DuckDuckGoWrapper:
                                          max_results=self.max_results,
                                          timelimit=self.timelimit))
         elif self.source == 'news':
-            return list(self.engine.news(keywords=query,
+            res = list(self.engine.news(keywords=query,
                                          region=self.region,
                                          safesearch=self.safesearch,
                                          max_results=self.max_results,
                                          timelimit=self.timelimit))
+            return self.__unify_results(res)
 
 
 class DDG_Scraper(BaseEngine):
