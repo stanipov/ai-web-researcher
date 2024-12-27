@@ -14,6 +14,16 @@ class ExtChromiumLoader:
                  headless:bool = True,
                  proxy: Dict[str, str] = None,
                  cookie_btns_text:List[str] = None):
+        """
+        Sets the loader
+
+        :param ext_path - path to extensions if any
+        :param user_agent - string, user agent
+        :param proxy - Dict[str, str] - proxy parameters, read the docs https://playwright.dev/python/docs/network
+        :param headless - bool  - run headless or not
+        :param cookie_btns_text - List[str] or None, list of text to click cookie consent
+
+        """
         self.__ext_path = ext_path
         self.__user_agent = user_agent
         self.__headless = headless
@@ -50,6 +60,8 @@ class ExtChromiumLoader:
         Async loading list of URLs. It allows to eliminate time on starting
         a new browser for each URL
 
+        :param playwright -- Playwright context
+        :param urls - list of URLs to scrape
         """
         context = await playwright.chromium.launch_persistent_context(
             user_data_dir= self.__usr_data_path,
@@ -74,15 +86,11 @@ class ExtChromiumLoader:
             if self.cookie_btns_text is not None:
                 logger.info(f"Accepting cookies if any")
                 for btn in self.cookie_btns_text:
-                    #logger.info(f"Accepting cookies if any; looking for \"{btn}\" button.")
                     try:
-                        #await page.locator(f'button:has-text("{btn}")').click(timeout=1500)
-                        #break
                         await page.get_by_role('button', name=re.compile(f'{btn}', re.IGNORECASE)).click(timeout=1500)
                         logger.debug(f"\"{btn}\" was clicked")
                         break
                     except Exception as e:
-                        #logger.info(f'While trying to accept cookies, got "{e}"')
                         pass
 
             try:

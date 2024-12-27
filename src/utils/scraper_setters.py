@@ -6,6 +6,27 @@ from src.scrapers.loaders import ExtChromiumLoader
 import logging
 logger = logging.getLogger(__name__)
 
+"""
+"scrape": {
+    "loader": "chromium",  # only supported
+    "ext_path": os.getenv('chrome_ext_pass'),
+    "headless": False,
+    "cookie_btns": None, #['Accept All', 'Accept', 'Allow', 'Allow All', 'Consent', 'OK', 'Continue'], #list or None
+    "user_agent": None, # str or None
+    "proxy": None, # Dict[str, str] or none, read: https://playwright.dev/python/docs/network#http-proxy
+
+},
+"search_engine": {
+    "name": "ddg",  # only supported
+    "region": "en-us",  # not used for now, def "wt-wt" -- no region specified
+    "time":  None, #  "d",  # None as default, options: d, w, m, y
+    "max_results": 10,
+    "resuts_sep": "<::SRC_SEP::>",
+    "search_source": None,  # news, text
+    "safe_search": "off",
+}
+"""
+
 
 SUPPORTED_SEARCH_ENGINES = ['ddg']
 SUPPORTED_LOADERS = ['chromium']
@@ -57,9 +78,11 @@ class ScraperInit:
         srch_source = config['search_engine'].get('search_source', None)
         safe_srch = config['search_engine'].get('safe_search', "off")
         # scrape
-        path_to_extension = config['scrape']['ext_path']
-        coockie_btns = config['scrape']['cookie_btns']
-        headless_scrape = config['scrape']['headless']
+        path_to_extension = config['scrape'].get('ext_path', None)
+        coockie_btns = config['scrape'].get('cookie_btns', None)
+        headless_scrape = config['scrape'].get('headless', True)
+        user_agent = config['scrape'].get('user_agent', None)
+        proxy = config['scrape'].get('proxy', None)
 
         scraper = None
         url_loader = None
@@ -68,7 +91,9 @@ class ScraperInit:
         if loader_name == 'chromium':
             url_loader = ExtChromiumLoader(ext_path=path_to_extension,
                                            headless=headless_scrape,
-                                           cookie_btns_text=coockie_btns)
+                                           cookie_btns_text=coockie_btns,
+                                           user_agent=user_agent,
+                                           proxy=proxy)
 
         # Search + scraper
         if search_engine == 'ddg' and url_loader is not None:
