@@ -1,52 +1,100 @@
-from langchain_community.tools import DuckDuckGoSearchResults
-from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
+
 from src.scrapers.base_engine import BaseEngine, engine_ainvoke
 import asyncio
 import re
 import logging
 from typing import List, Dict, Required, Optional
+from duckduckgo_search import DDGS
 
 logger = logging.getLogger(__name__)
+
+class DuckDuckGoWrapper:
+    def __init__(self,
+                 source:str = 'text',
+                 region: str="wt-wt",
+                 safesearch: str="off",
+                 max_results: int=5,
+                 timelimit: str|None = None,
+                 timeout: int=10):
+        """
+        Initializes the DuckDuckGoWrapper.
+
+        :param source: Source type ('text' or 'news').
+        :param region: Region code (default 'wt-wt').
+        :param safesearch: Safe search level ('on', 'moderate', or 'off'). Default is 'off'.
+        :param max_results: Maximum number of results to return (default 5).
+        :param timeout - int - Timeout value for the HTTP client. Defaults to 10.
+        """
+        if source not in ('text', 'news'):
+            logger.warning(f"Source must be 'text' or 'news'! Setting to \"text\"")
+            source = 'text'
+
+        __allowed_src = ['news','text']
+        if type(source) == str:
+            self.source = source.lower()
+            if self.source not in __allowed_src:
+                self.source = 'text'
+        else:
+            self.source = 'text'
+
+        if type(timelimit) == str:
+            if timelimit.lower() not in ['d', 'w', 'm', 'y']:
+                timelimit = None
+                logger.warning(f"Timelimit not recognized, setting to None. Allowed values: d, w, m, y")
+        else:
+            timelimit = None
+
+        self.region = region
+        self.safesearch = safesearch
+        self.max_results = max_results
+        self.timeout = timeout
+        self.timelimit = timelimit
+        self.engine = DDGS(timeout=timeout)
+
+    def run(self, query: str) -> List[Dict[str, str]]:
+        """
+        Searches DuckDuckGo based on the query and source type.
+
+        :param query: The search query string.
+        :return: List of search results.
+        """
+        if self.source == 'text':
+            return list(self.engine.text(keywords=query,
+                                         region=self.region,
+                                         safesearch=self.safesearch,
+                                         max_results=self.max_results,
+                                         timelimit=self.timelimit))
+        elif self.source == 'news':
+            return list(self.engine.news(keywords=query,
+                                         region=self.region,
+                                         safesearch=self.safesearch,
+                                         max_results=self.max_results,
+                                         timelimit=self.timelimit))
+
 
 class DDG_Scraper(BaseEngine):
     def __init__(self,
                  loader,
                  src_region: Optional[str] ="wt-wt",
                  src_intvl: Optional[str|None] = None,
-                 resuts_sep: Optional[str] = "<::SRC_SEP::>",
                  src_source: Optional[str|None] = None,
                  safe_src: Optional[str] = 'off',
-                 max_results: Optional[int] = 20) -> None:
+                 max_results: Optional[int] = 20,
+                 timeout:int = 15) -> None:
 
         if src_region is None:
             src_region = "wt-wt"
         if src_region == "":
             src_region = "wt-wt"
 
-        self.__ddg_wrapper = DuckDuckGoSearchAPIWrapper(region=src_region,
-                                                        time=src_intvl,
-                                                        max_results=max_results,
-                                                        safesearch=safe_src)
-        self.engine = DuckDuckGoSearchResults(api_wrapper=self.__ddg_wrapper,
-                                              results_separator=resuts_sep,
-                                              source=src_source)
+        self.engine = DuckDuckGoWrapper(source=src_source,
+                                        region=src_region,
+                                        safesearch=safe_src,
+                                        max_results=max_results,
+                                        timeout=timeout,
+                                        timelimit=src_intvl)
+
         self.loader = loader
-        self.results_sep = resuts_sep
-        self.__matcher = re.compile(r'\[([^\]]+)\]')
-        self.__matcher2 = re.compile(r"(?<=snippet: )(.*?)(?=, snippet: )")
-
-        # set up RegEx matchers
-        subs1 = "snippet: "
-        subs2 = "., title:"
-        self.snippet_m = re.compile(fr'{subs1}([^\]]+){subs2}')
-
-        subs1 = "title: "
-        subs2 = ", link: "
-        self.title_m = re.compile(fr'{subs1}([^\]]+){subs2}')
-
-        subs1 = "link: "
-        subs2 = ""
-        self.url_m = re.compile(fr'{subs1}([^\]]+){subs2}')
 
     def __parse_response(self, res) -> Dict[str, str]:
         """
@@ -56,14 +104,13 @@ class DDG_Scraper(BaseEngine):
         :return:
         """
 
-        response = res.split(self.results_sep)
 
         ans = {}
-        for item in response:
+        for item in res:
             try:
-                short_sum = self.snippet_m.findall(item)[0]
-                title = self.title_m.findall(item)[0]
-                url = self.url_m.findall(item)[0]
+                short_sum = item['body']
+                title = item['title']
+                url = item['href']
                 ans[url] = {
                     "short_summary": short_sum,
                     "title": title
@@ -94,8 +141,9 @@ class DDG_Scraper(BaseEngine):
         :return: Dict[url] -> Dict{"short_summary", "title", "text"}
         """
         # get the search engine response
-        raw_response_str = asyncio.run(engine_ainvoke(self.engine, query))
-        response = self.__parse_response(raw_response_str)
+        #raw_response_str = asyncio.run(engine_ainvoke(self.engine, query))
+        raw_response = self.engine.run(query)
+        response = self.__parse_response(raw_response)
         urls = list(response.keys())
         scraped_urls = self.__load_urls(urls)
 
@@ -109,8 +157,8 @@ class DDG_Scraper(BaseEngine):
         return response
 
     async def ainvoke(self, query):
-        raw_response_str = await engine_ainvoke(self.engine, query)
-        response = self.__parse_response(raw_response_str)
+        raw_response = self.engine.run(query)
+        response = self.__parse_response(raw_response)
         urls = list(response.keys())
         scraped_urls = await self.__aload_urls(urls)
 

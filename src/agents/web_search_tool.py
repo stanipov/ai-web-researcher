@@ -70,6 +70,7 @@ class WebSearchTool:
                 search_results[url]['id'] = md5(query.encode('utf-8', errors='replace')).hexdigest()
                 search_results[url]['ts'] = datetime.utcnow().timestamp()
                 search_results[url]['model_name'] = self.summarizer.model_name
+                search_results[url]['headless'] = self.scraper.loader.is_headless()
 
             logger.info(f"Finished scraping in {time.time() - t_start:.1f} seconds")
 

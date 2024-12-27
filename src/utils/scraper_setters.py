@@ -71,12 +71,12 @@ class ScraperInit:
             logger.error(f"Unsupported loader, got {loader_name}, allowed: {', '.join(SUPPORTED_LOADERS)}")
 
         # web search parameters
-        max_results = config['search_engine']['max_results']
+        max_results = config['search_engine'].get('max_results', 10)
         srch_region = config['search_engine'].get('region', "wt-wt")
         srch_intvl = config['search_engine'].get('time', None)
-        results_sep = config['search_engine'].get('resuts_sep', "<::SRC_SEP::>")
         srch_source = config['search_engine'].get('search_source', None)
         safe_srch = config['search_engine'].get('safe_search', "off")
+        search_timeout =  config['search_engine'].get('timeout', 15)
         # scrape
         path_to_extension = config['scrape'].get('ext_path', None)
         coockie_btns = config['scrape'].get('cookie_btns', None)
@@ -98,13 +98,12 @@ class ScraperInit:
         # Search + scraper
         if search_engine == 'ddg' and url_loader is not None:
             scraper = DDG_Scraper(url_loader,
-                                      max_results=max_results,
-                                      src_region=srch_region,
-                                      src_intvl=srch_intvl,
-                                      resuts_sep=results_sep,
-                                      src_source=srch_source,
-                                      safe_src=safe_srch)
-
+                                  max_results=max_results,
+                                  src_region=srch_region,
+                                  src_intvl=srch_intvl,
+                                  src_source=srch_source,
+                                  safe_src=safe_srch,
+                                  timeout=search_timeout)
 
         return scraper
 

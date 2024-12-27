@@ -5,6 +5,8 @@ import logging
 import os
 import re
 
+from sqlalchemy.dialects.mysql.mariadb import loader
+
 logger = logging.getLogger(__name__)
 
 class ExtChromiumLoader:
@@ -29,6 +31,10 @@ class ExtChromiumLoader:
         self.__headless = headless
         self.__usr_data_path = os.path.join(os.getcwd(), '.tmp')
         self.__proxy = proxy
+
+        logger.debug(f"Scraping headless: {self.__headless}")
+        logger.debug(f"Extensions: {self.__ext_path}")
+        logger.debug(f"User agent: {self.__user_agent}")
 
         self.__args = []
         if ext_path:
@@ -111,3 +117,6 @@ class ExtChromiumLoader:
         async with async_playwright() as pl:
             pages = await self.__aload_urls(pl, urls)
         return pages
+
+    def is_headless(self):
+        return self.__headless
