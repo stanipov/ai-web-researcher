@@ -2,10 +2,6 @@ from copyreg import pickle
 from doctest import debug
 from typing import Literal, Dict, Union
 
-from sqlalchemy.log import echo_property
-
-from src.utils.utils import make_data_dst
-
 # For a Plain Summarizer
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage
@@ -15,7 +11,7 @@ import time, os, pickle
 from hashlib import md5
 from datetime import datetime
 
-from utils.utils import count_words
+from src.utils.utils import count_words
 
 # logging
 import logging
@@ -37,6 +33,10 @@ class PlainSummarizer:
 
         sys_summ_prt = sum_msgs.get('system', "")
         task_summ_prt = sum_msgs.get('task', "")
+        self.task_prompts = {
+            'system': sys_summ_prt,
+            'task': task_summ_prt
+        }
         summ_prompt = ChatPromptTemplate.from_messages([
             SystemMessage(content=sys_summ_prt),
             HumanMessagePromptTemplate.from_template(task_summ_prt)
@@ -44,10 +44,14 @@ class PlainSummarizer:
         self.summ_chain = summ_prompt | llm
         self.json_parser = JsonOutputParser()
 
-        try:
+        self.model_name = ''
+        if hasattr(llm, 'model_name'):
             self.model_name = llm.model_name
-        except Exception as e:
-            logger.warning(f"Could not find model name, use default! Error: {e}")
+        if hasattr(llm, 'model'):
+            self.model_name = llm.model
+
+        if self.model_name == "":
+            logger.warning(f"Could not find model name, use default!")
             self.model_name = "generic_llm"
 
         if debug_loc is not None:
@@ -123,6 +127,22 @@ class PlainSummarizer:
         else:
             logger.warning(f"Failed to summarize. Output type: {type(_sum)}")
             _sum = None
+            if self.debug_loc:
+                _hs = md5(str(sum_msg).encode('utf-8', 'gnore')).hexdigest()
+                _dt = datetime.utcnow().strftime("%Y-%m-%d")
+                fname = os.path.join(self.debug_loc, f"{_dt}-{_hs}.pkl")
+                logger.debug(f"Dumping results as is to {fname}")
+                dump_obj = {
+                    'msg': sum_msg,
+                    'raw_response': raw_res,
+                    'converted': _sum
+                }
+                try:
+                    with open(fname, 'wb') as f:
+                        pickle.dump(dump_obj, f)
+                    logger.debug("Dump succeed")
+                except Exception as e:
+                    logger.error(f"While dumping for this error: {e}")
 
         return _sum
 
@@ -134,8 +154,8 @@ class PlainSummarizer:
 from langgraph.graph import StateGraph, START, END
 from functools import partial
 
-from agents.agent_states import SimpleSummarizerState, AdvancedSummarizerState
-from agents.nodes import BasicJSONNode, BasicStrNode
+from src.agents.agent_states import SimpleSummarizerState, AdvancedSummarizerState
+from src.agents.nodes import BasicJSONNode, BasicStrNode
 
 def is_relevant_router(state: Union[SimpleSummarizerState, AdvancedSummarizerState]) -> Literal["proceed","__end__"]:
     """Conditional edge function"""

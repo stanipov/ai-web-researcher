@@ -14,6 +14,19 @@ except ModuleNotFoundError as E:
 from typing import Dict, List
 from langchain_core.runnables.base import Runnable
 
+"""
+config = {
+            "type": "api:openai", # local:ollama, api:groq, i.e. <local/api>.<service name>
+            "api_key": os.getenv('OAI'),
+            "model_name": "gpt-4o-mini", 
+            "retry_sleep": 1,
+            "req_timeout": 240,
+            "temperature": 0.5,
+            "model_kw": None
+        }
+"""
+
+
 class LLMWrapper:
 
     def __init__(self):

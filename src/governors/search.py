@@ -2,10 +2,10 @@ import os
 import logging
 import asyncio
 import copy
+import pickle
 from typing import Dict
 
-from pandas.io.formats.info import frame_sub_kwargs
-from sqlalchemy.util import await_only
+from uuid import uuid4
 
 from governors.base_classes import BaseSearchGvt
 from utils.llm_setters import  LLMWrapper
@@ -42,7 +42,10 @@ class WebSearchGvt(BaseSearchGvt):
         logger.info(f"Results will be saved to {save_dst}")
         logger.info(f"Temporal results will be saved in \"{tmp_working_dir}\"")
         err_dump = config['data']['error_dump_dir']
+        err_dump = os.path.join(err_dump, 'WebSearchGvt')
         logger.info(f"Error results will be dumped in \"{err_dump}\"")
+        self.err_dump = err_dump
+        os.makedirs(err_dump, exist_ok=True)
 
         logger.info('Setting the LLM')
         llm_setter = LLMWrapper()
@@ -96,6 +99,9 @@ class WebSearchGvt(BaseSearchGvt):
         __cfg_int['save_dir'] = config['data'].get('save_dir', os.getcwd())
         __cfg_int['save_dir'] = os.path.join(__cfg_int['save_dir'], 'scrape')
 
+        #os.makedirs(__cfg_all['save_dir'], exist_ok=True)
+        #os.makedirs(__cfg_int['save_dir'], exist_ok=True)
+
         try:
             self.__writer_all = DaskWriter(__cfg_all)
             logger.info("DataWriter for the final data is set")
@@ -120,6 +126,7 @@ class WebSearchGvt(BaseSearchGvt):
             return None
         return await self.search_tool.ascrape_query(query)
 
+
     def scrape(self, query: str) -> Dict[str, str]:
         """
         A sync wrapper to scrape synchronously the query
@@ -128,6 +135,7 @@ class WebSearchGvt(BaseSearchGvt):
             logger.error(f"Query is expected to be a string type, got {type(query)}")
             return None
         return asyncio.run(self.search_tool.ascrape_query(query))
+
 
     def write(self, data: Dict, kind: str) -> None:
         """
@@ -146,6 +154,10 @@ class WebSearchGvt(BaseSearchGvt):
                         self.__writer_scrape.write(data)
                     except Exception as e:
                         logger.error(f"Error during saving \"{kind}\": \"{e}\"")
+                        fname = os.path.join(self.err_dump, f"{uuid4().hex}.pkl")
+                        logger.info(f"Dumping the object to \"{fname}\"")
+                        with open(fname, 'wb') as f:
+                            pickle.dump(data, f)
                 else:
                     logger.warning(f"Can't save \"{kind}\" as the writer is not set!")
             if kind == 'final' or kind == 'all':
@@ -154,8 +166,13 @@ class WebSearchGvt(BaseSearchGvt):
                         self.__writer_all.write(data)
                     except Exception as e:
                         logger.error(f"Error during saving \"{kind}\": \"{e}\"")
+                        fname = os.path.join(self.err_dump, f"{uuid4().hex}.pkl")
+                        logger.info(f"Dumping the object to \"{fname}\"")
+                        with open(fname, 'wb') as f:
+                            pickle.dump(data, f)
                 else:
                     logger.warning(f"Can't save \"{kind}\" as the writer is not set!")
+
 
     def read(self, kind:str):
         """
@@ -179,6 +196,7 @@ class WebSearchGvt(BaseSearchGvt):
                     except Exception as e:
                         logger.error(f"Could not read data of \"{kind}\", got: \"{e}\"")
         return ans
+
 
     def summarize(self, data: Dict[str, str]) -> Dict[str, str]|None:
         """

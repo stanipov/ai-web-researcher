@@ -7,8 +7,7 @@ from langchain_core.runnables.base import Runnable
 logger = logging.getLogger(__name__)
 
 from src.agents.summarizers import PlainSummarizer
-from src.utils.defaults import (scraped_page_summary_v0,
-                                scraped_page_summary_v1)
+from src.utils.defaults import scraped_page_cleanup
 
 
 """
@@ -57,10 +56,13 @@ class SummarizerInit:
         summarizer = None
         if config['summarization_props']['name'].lower() == 'simple':
             task_v = config['summarization_props'].get('task_prompt', 'v1').lower()
-            if task_v == "v0":
-                summ_msg = scraped_page_summary_v0
-            if task_v == "v1":
-                summ_msg = scraped_page_summary_v1
+            if task_v in scraped_page_cleanup:
+                summ_msg = scraped_page_cleanup[task_v]
+            else:
+                msg = f"Prompt version is not recognized! Got {task_v}, allowed: {', '.join(list(scraped_page_cleanup.keys()))}"
+                logger.error(msg)
+                raise KeyError(msg)
+
             if 'data' in config:
                 error_dump_dir = config['data'].get('error_dump_dir', None)
             summarizer = PlainSummarizer(summ_msg, llm, error_dump_dir)
