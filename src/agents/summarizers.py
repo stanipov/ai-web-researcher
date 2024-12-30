@@ -84,6 +84,10 @@ class PlainSummarizer:
             logger.error(f"API call to the LLM failed with \"{e}\". Aborting")
             return None
 
+        if not hasattr(raw_res, 'content'):
+            logger.error(f"Summarization failed, aborting")
+            return None
+
         _sum = None
 
         try:
@@ -105,10 +109,38 @@ class PlainSummarizer:
                 logger.info(f"Successfully summarized in {time.time() - t_start :.2f} sec; {_sum['summ_count']} words")
             else:
                 logger.error(f"Could not find summary kw in the results: {_sum.keys()}. Will use the raw data.")
+                if type(raw_res.content) == str:
+                    _sum = {
+                        'summary': raw_res.content,
+                        'summ_count': count_words(raw_res.content)
+                    }
+                else:
+                    _sum = None
+                    if self.debug_loc:
+                        _hs = md5(str(sum_msg).encode('utf-8', 'gnore')).hexdigest()
+                        _dt = datetime.utcnow().strftime("%Y-%m-%d")
+                        fname = os.path.join(self.debug_loc, f"{_dt}-{_hs}.pkl")
+                        logger.debug(f"Dumping results as is to {fname}")
+                        dump_obj = {
+                            'msg': sum_msg,
+                            'raw_response': raw_res,
+                            'converted': _sum
+                        }
+                        try:
+                            with open(fname, 'wb') as f:
+                                pickle.dump(dump_obj, f)
+                            logger.debug("Dump succeed")
+                        except Exception as e:
+                            logger.error(f"While dumping for this error: {e}")
+        else:
+            logger.warning(f"Failed to receive a valid JSON. Will proceed with the raw response!")
+            if type(raw_res.content) == str:
                 _sum = {
                     'summary': raw_res.content,
                     'summ_count': count_words(raw_res.content)
                 }
+            else:
+                _sum = None
                 if self.debug_loc:
                     _hs = md5(str(sum_msg).encode('utf-8', 'gnore')).hexdigest()
                     _dt = datetime.utcnow().strftime("%Y-%m-%d")
@@ -125,28 +157,6 @@ class PlainSummarizer:
                         logger.debug("Dump succeed")
                     except Exception as e:
                         logger.error(f"While dumping for this error: {e}")
-        else:
-            logger.warning(f"Failed to receive a valid JSON. Will proceed with the raw response!")
-            _sum = {
-                'summary': raw_res.content,
-                'summ_count': count_words(raw_res.content)
-            }
-            if self.debug_loc:
-                _hs = md5(str(sum_msg).encode('utf-8', 'gnore')).hexdigest()
-                _dt = datetime.utcnow().strftime("%Y-%m-%d")
-                fname = os.path.join(self.debug_loc, f"{_dt}-{_hs}.pkl")
-                logger.debug(f"Dumping results as is to {fname}")
-                dump_obj = {
-                    'msg': sum_msg,
-                    'raw_response': raw_res,
-                    'converted': _sum
-                }
-                try:
-                    with open(fname, 'wb') as f:
-                        pickle.dump(dump_obj, f)
-                    logger.debug("Dump succeed")
-                except Exception as e:
-                    logger.error(f"While dumping for this error: {e}")
 
         return _sum
 
