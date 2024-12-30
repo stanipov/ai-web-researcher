@@ -104,8 +104,11 @@ class PlainSummarizer:
                 _sum['summ_count'] = count_words(_sum['summary'])
                 logger.info(f"Successfully summarized in {time.time() - t_start :.2f} sec; {_sum['summ_count']} words")
             else:
-                logger.error(f"Could not find summary kw in the results: {_sum.keys()}")
-
+                logger.error(f"Could not find summary kw in the results: {_sum.keys()}. Will use the raw data.")
+                _sum = {
+                    'summary': raw_res.content,
+                    'summ_count': count_words(raw_res.content)
+                }
                 if self.debug_loc:
                     _hs = md5(str(sum_msg).encode('utf-8', 'gnore')).hexdigest()
                     _dt = datetime.utcnow().strftime("%Y-%m-%d")
@@ -122,11 +125,12 @@ class PlainSummarizer:
                         logger.debug("Dump succeed")
                     except Exception as e:
                         logger.error(f"While dumping for this error: {e}")
-
-                _sum = None
         else:
-            logger.warning(f"Failed to summarize. Output type: {type(_sum)}")
-            _sum = None
+            logger.warning(f"Failed to receive a valid JSON. Will proceed with the raw response!")
+            _sum = {
+                'summary': raw_res.content,
+                'summ_count': count_words(raw_res.content)
+            }
             if self.debug_loc:
                 _hs = md5(str(sum_msg).encode('utf-8', 'gnore')).hexdigest()
                 _dt = datetime.utcnow().strftime("%Y-%m-%d")
