@@ -93,7 +93,36 @@ class PlainSummarizer:
         try:
             _sum = self.json_parser.invoke(raw_res)
         except Exception as e:
-            logger.error(f"Could not parse the output. Retrying one more time in {api_retry_time} seconds.")
+            logger.info(f"Response was not a proper JSON. Checking for a raw response.")
+            if type(raw_res.content) == str:
+                _sum = {
+                    'summary': raw_res.content,
+                    'summ_count': count_words(raw_res.content)
+                }
+                logger.info(f"Using the raw response.")
+                return _sum
+            else:
+                _sum = None
+                if self.debug_loc:
+                    _hs = md5(str(sum_msg).encode('utf-8', 'gnore')).hexdigest()
+                    _dt = datetime.utcnow().strftime("%Y-%m-%d")
+                    fname = os.path.join(self.debug_loc, f"{_dt}-{_hs}.pkl")
+                    logger.debug(f"Dumping results as is to {fname}")
+                    dump_obj = {
+                        'msg': sum_msg,
+                        'raw_response': raw_res,
+                        'converted': _sum
+                    }
+                    try:
+                        with open(fname, 'wb') as f:
+                            pickle.dump(dump_obj, f)
+                        logger.debug("Dump succeed")
+                    except Exception as e:
+                        logger.error(f"While dumping for this error: {e}")
+                return _sum
+
+            logger.info(f"Raw response was not a string, will retry {num_retries} more time(s) in {api_retry_time} seconds.")
+            #logger.error(f"Could not parse the output. Retrying {num_retries} more time(s) in {api_retry_time} seconds.")
             for i in range(num_retries):
                 logger.info(f"Retry: {i+1}/{num_retries} in {api_retry_time} seconds.")
                 time.sleep(api_retry_time)
@@ -133,30 +162,7 @@ class PlainSummarizer:
                         except Exception as e:
                             logger.error(f"While dumping for this error: {e}")
         else:
-            logger.warning(f"Failed to receive a valid JSON. Will proceed with the raw response!")
-            if type(raw_res.content) == str:
-                _sum = {
-                    'summary': raw_res.content,
-                    'summ_count': count_words(raw_res.content)
-                }
-            else:
-                _sum = None
-                if self.debug_loc:
-                    _hs = md5(str(sum_msg).encode('utf-8', 'gnore')).hexdigest()
-                    _dt = datetime.utcnow().strftime("%Y-%m-%d")
-                    fname = os.path.join(self.debug_loc, f"{_dt}-{_hs}.pkl")
-                    logger.debug(f"Dumping results as is to {fname}")
-                    dump_obj = {
-                        'msg': sum_msg,
-                        'raw_response': raw_res,
-                        'converted': _sum
-                    }
-                    try:
-                        with open(fname, 'wb') as f:
-                            pickle.dump(dump_obj, f)
-                        logger.debug("Dump succeed")
-                    except Exception as e:
-                        logger.error(f"While dumping for this error: {e}")
+            logger.warning(f"Could not summarize. Returning None")
 
         return _sum
 

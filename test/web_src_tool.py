@@ -1,5 +1,4 @@
 import sys
-from web_search_tool import WebSearchTool
 sys.path.append("./src")
 
 import os
@@ -24,13 +23,13 @@ if __name__ == "__main__":
     srch_gov_config = {
         "summarization_props":{
             "name": "simple", # only supported
-            "task_prompt": "v1", # only supported
+            "task_prompt": "v2", # only supported
             "sum_num_retries": 1,
-            "frac2sum": 0.3,
+            "frac2sum": 0.4,
             "min_txt_len": 200,
             "max_txt_len": 9000,
-            "max_summ_len_abs": 800,
-            "max_len_to_sum": 5000,
+            "max_summ_len_abs": 900,
+            "max_len_to_sum": 10000,
         },
 
         "llm": {
@@ -39,7 +38,7 @@ if __name__ == "__main__":
             "model_name": "gpt-4o-mini", #"llama-3.1-8b-instant",
             "retry_sleep": 1,
             "req_timeout": 240,
-            "temperature": 0.5,
+            "temperature": 0.25,
             "model_kw": None
         },
 
@@ -47,7 +46,7 @@ if __name__ == "__main__":
             "loader": "chromium",  # only supported
             "ext_path": os.getenv('chrome_ext_pass'),
             "headless": False,
-            "cookie_btns": None,  # ['Accept All', 'Accept', 'Allow', 'Allow All', 'Consent', 'OK', 'Continue'], #list or None
+            "cookie_btns": ['Accept', 'Allow', 'Consent', 'OK', 'Continue'], #list or None
             "user_agent": None, # "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)", # str or None
             "proxy": None, # Dict[str, str] or none, read: https://playwright.dev/python/docs/network#http-proxy
 
@@ -55,9 +54,9 @@ if __name__ == "__main__":
         "search_engine": {
             "name": "ddg",  # only supported
             "region": "wt-wt",  # not used for now, def "wt-wt" -- no region specified
-            "time":  "m", #  "d",  # None as default, options: d, w, m, y
-            "max_results": 25,
-            "search_source": 'news',  # news, text
+            "time":  None, #  "d",  # None as default, options: d, w, m, y
+            "max_results": 15,
+            "search_source": 'text',  # news, text
             "safe_search": "off",
             "timeout": 30 # in sec, def 10 sec
         },
@@ -69,17 +68,26 @@ if __name__ == "__main__":
 
     }
 
-    query = "What to expect from Trump administration 2025?"
-    query = "Trump and China"
+    #queries = [
+    #    "What to expect from Trump administration 2025?",
+    #    "Trump and China"
+    #]
+
+    queries =['Donald Trump healthcare reform 2025',
+     'Trump immigration policy outlook',
+     'Trump foreign aid budget 2025',
+     'Trump education initiatives 2025',
+     'Trump climate change policies 2025']
 
     wb_tool = WebSearchGvt(srch_gov_config)
-    ans = asyncio.run(wb_tool.ascrape(query))
+    for query in queries:
+        ans = asyncio.run(wb_tool.ascrape(query))
 
-    logger.info('Saving the scrape results')
-    wb_tool.write(ans, 'scrape')
+        logger.info('Saving the scrape results')
+        wb_tool.write(ans, 'scrape')
 
-    logger.info("Summarizing the results")
-    s_ans = wb_tool.summarize(ans)
+        logger.info("Summarizing the results")
+        s_ans = wb_tool.summarize(ans)
 
-    wb_tool.write(s_ans, 'final')
-    logger.info("Saving everything")
+        wb_tool.write(s_ans, 'final')
+        logger.info("Saving everything")

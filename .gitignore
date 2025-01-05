@@ -1,5 +1,16 @@
 # Local data not to be commited
 test/data/
+test/dump/
+test/test
+test/.*
+archive/*
+data/
+data__/
+experiments/
+page_content.txt
+prompts
+.tmp/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

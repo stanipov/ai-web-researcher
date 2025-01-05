@@ -1,7 +1,7 @@
 import logging
 from typing import List, Dict, Union, Optional
 
-from utils.utils import count_words
+from src.utils.utils import count_words
 import time
 from hashlib import md5
 from datetime import datetime

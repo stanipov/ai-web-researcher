@@ -7,12 +7,12 @@ from typing import Dict
 
 from uuid import uuid4
 
-from governors.base_classes import BaseSearchGvt
-from utils.llm_setters import  LLMWrapper
-from utils.scraper_setters import ScraperInit
-from utils.set_summarizers import SummarizerInit
-from utils.config import validate_global_config
-from utils.data_writers import DaskWriter
+from src.governors.base_classes import BaseSearchGvt
+from src.utils.llm_setters import  LLMWrapper
+from src.utils.scraper_setters import ScraperInit
+from src.utils.set_summarizers import SummarizerInit
+from src.utils.config import validate_global_config
+from src.utils.data_writers import DaskWriter
 from src.agents.web_search_tool import WebSearchTool
 
 logger = logging.getLogger(__name__)
