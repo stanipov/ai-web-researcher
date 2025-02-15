@@ -98,38 +98,48 @@ The WebSearchGvt described above provides an easy way to retrieve summarized and
 srch_gov_config = {
         "summarization_props":{
             "name": "simple", # 'simple' is only available
-            "task_prompt": "v2", # see deafaults.py for variants, but the latest is typically the best
+            "task_prompt": "v2", # see deafaults.py for variants, 
+                                 # but the latest is typically the best
             "sum_num_retries": 1, # number of retries if LLM produces unparseable output
-            "frac2sum": 0.4, # not all task prompts use, maximal word count as a fracion of word count of original text 
-            "min_txt_len": 200, # minimal text lenght for summarization, mainly used to filter out incorrect results (such as  page not found, "your browser is blocked", etc.)
-            "max_txt_len": 9000, # maximal word count of the input text for LLM lean-up/summarization (typically to avoid unresonably long gibberish or respect LLM's context window)
+            "frac2sum": 0.4, # not all task prompts use, maximal word count as a fracion 
+                             # of word count of original text 
+            "min_txt_len": 200, # minimal text lenght for summarization, 
+                                # mainly used to filter out incorrect results 
+                                # (such as  page not found, "your browser is blocked", etc.)
+            "max_txt_len": 9000, # maximal word count of the input text for LLM 
+                                 # clean-up/summarization (typically to avoid unresonably 
+                                 # long gibberish or respect LLM's context window)
             "max_summ_len_abs": 900, # absolute word count for the cleaned text
         },
 
         "llm": {
-            "type": "api:openai", # local:ollama, api:groq, i.e. follow the pattern <local/api>.<service name>
+            "type": "api:openai", # local:ollama, api:groq, 
+                                  # i.e. follow the pattern <local/api>.<service name>
             "api_key": "ABCD123456789", # your API key,
-            "model_name": "gpt-4o-mini", 
+            "model_name": "model-name", 
             "retry_sleep": 1, # delay between api calls, in seconds
             "req_timeout": 240, # maximal timeout in sec
             "temperature": 0.25, # temperature
             "model_kw": None # model keywords,
-            # If using Ollama, you can add these key:value pairs directly (default value/type if not None):
-            # "keep_alive": None/int,
-            # "num_ctx": None/int,
-            # "num_predict": None/int,
-            # "repeat_last_n": 64/int,
-            # "repeat_penalty": None/float,
-            # "top_p": None/float            
+                             # If using Ollama, you can add these key:value pairs directly 
+                             # (default value/type if not None):
+                             # "keep_alive": None/int,
+                             # "num_ctx": None/int,
+                             # "num_predict": None/int,
+                             # "repeat_last_n": 64/int,
+                             # "repeat_penalty": None/float,
+                             # "top_p": None/float            
         },
 
         "scrape": {
             "loader": "chromium",  # only supported browser
             "ext_path": </path/to/extension>, 
             "headless": False, # headless works, but not all pages are loaded
-            "cookie_btns": ['Accept', 'Allow', 'Consent', 'OK', 'Continue'], #list or None, text on cockie consent button
+            "cookie_btns": ['Accept', 'Allow', 'Consent', 'OK', 'Continue'], 
+                           #list or None, text on cockie consent button
             "user_agent": None, # str or None
-            "proxy": None, # Dict[str, str] or none, read: https://playwright.dev/python/docs/network#http-proxy
+            "proxy": None, # Dict[str, str] or none 
+                           # read: https://playwright.dev/python/docs/network#http-proxy
 
         },
         "search_engine": {
@@ -144,7 +154,8 @@ srch_gov_config = {
 
         "data": {
             "save_dir": </path/to/save>, 
-            "error_dump_dir": </path/to/dump>, # if provided, some classes will dump Pickled objects which cause problems. 
+            "error_dump_dir": </path/to/dump>, # if provided, some classes will dump 
+                                               # Pickled objects which cause problems. 
         }
 
     }
