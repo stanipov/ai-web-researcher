@@ -93,7 +93,7 @@ See Examples section for examples on how to use it.
 ## Web search
 The WebSearchGvt described above provides an easy way to retrieve summarized and raw search results for a given query.
  
-### Sample config
+### Typical config
 ```commandline
 srch_gov_config = {
         "summarization_props":{
@@ -108,7 +108,7 @@ srch_gov_config = {
 
         "llm": {
             "type": "api:openai", # local:ollama, api:groq, i.e. follow the pattern <local/api>.<service name>
-            "api_key": os.getenv('OAI'), # your API key,
+            "api_key": "ABCD123456789", # your API key,
             "model_name": "gpt-4o-mini", 
             "retry_sleep": 1, # delay between api calls, in seconds
             "req_timeout": 240, # maximal timeout in sec
@@ -150,9 +150,10 @@ srch_gov_config = {
     }
 ```
 
-### Sample usage
+### Typical usage
 ```commandline
 from src.governors.search import WebSearchGvt
+import asyncio
 
 config = {...}
 
